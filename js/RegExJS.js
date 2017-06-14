@@ -31,7 +31,23 @@ s._processPCRE = function(regex, str, callback) {
 			error = "ERROR";
 			result = [];
 		}
-		callback(error, result);
+
+		// Format results to match what the JS RegEx engine sends.
+		var formattedResults = [];
+		for (var i = 0; i < result.length; i++) {
+			var val = result[i];
+			var row = [];
+			formattedResults.push(row);
+			for (var n in val) {
+				if (!isNaN(n)) {
+					row.push(val[n]);
+				} else {
+					row[n] = val[n];
+				}
+			}
+		}
+		
+		callback(error, formattedResults);
 	});
 }
 
