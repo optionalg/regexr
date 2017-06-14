@@ -1,6 +1,12 @@
 var s = {};
 
-s.match = function (regex, str, callback) {
+s.JS = 0;
+s.PCRE = 1;
+
+var ServerModel = require('./net/ServerModel');
+var Utils = require('./utils/Utils');
+
+s.match = function (regex, str, type, callback) {
 	var matches = [];
 	var error = null;
 	var match = null;
@@ -11,6 +17,25 @@ s.match = function (regex, str, callback) {
 		return;
 	}
 
+	if (type == s.JS) {
+		s._processJS(regex, str, callback);
+	} else if (type == s.PCRE) {
+		s._processPCRE(regex, str, callback);
+	}
+};
+
+s._processPCRE = function(regex, str, callback) {
+	ServerModel.executeRegex(encodeURIComponent(Utils.addSlashes(regex)), encodeURIComponent(str)).then(function(result) {
+		var error = null;
+		if (result == null) {
+			error = "ERROR";
+			result = [];
+		}
+		callback(error, result);
+	});
+}
+
+s._processJS = function (regex, str, callback) {
 	if (window.Worker) {
 		if (s.worker) {
 			clearTimeout(s.id);
@@ -54,6 +79,6 @@ s.match = function (regex, str, callback) {
 		}
 		callback(error, matches);
 	}
-};
+}
 
 module.exports = s;

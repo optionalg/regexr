@@ -555,7 +555,7 @@ p.update = function () {
 	}
 
 	var _this = this;
-	RegExJS.match(regex, str, function (error, matches) {
+	RegExJS.match(regex, str, RegExJS.PCRE, function (error, matches) {
 		_this.error = error;
 		_this.matches = matches;
 
