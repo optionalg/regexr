@@ -24,6 +24,7 @@
 
 var s = {};
 s.END_POINT = "php/RegExr.php";
+s._serverVersionDetails = null;
 
 s.searchTags = function (term) {
 	return s._createPromise("searchTags", {term: term});
@@ -125,6 +126,16 @@ s.changeCategory = function (patternID, newCategory) {
 		newCategory: newCategory
 	});
 };
+
+s.getServerVersionDetails = function() {
+	return s._serverVersionDetails;
+}
+
+s.loadServerVersionDetails = function() {
+	s._createPromise("getServerDetails").then(function(result) {
+		s._serverVersionDetails = result;
+	});
+}
 
 s._createPromise = function (method, data, endPoint) {
 	var p = new Promise(function (resolve, reject) {

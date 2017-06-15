@@ -25,6 +25,7 @@
 var documentation = require('../documentation');
 var TextUtils = require('./TextUtils');
 var Utils = require('./Utils');
+var ServerModel = require('../net/ServerModel');
 
 var Docs = {};
 
@@ -185,6 +186,14 @@ Docs.getEscCharDocs = function (c, t, template) {
 
 Docs.getCtrlKey = function () {
 	return Utils.getCtrlKey();
+};
+
+Docs.getPHPVersion = function() {
+	return ServerModel.getServerVersionDetails().PHPVersion || "unknown";
+};
+
+Docs.getPCREVersion = function() {
+	return ServerModel.getServerVersionDetails().PCREVersion || "unknown";
 };
 
 // Inject text from the documentation file.

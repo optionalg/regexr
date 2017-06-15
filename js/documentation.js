@@ -23,7 +23,17 @@ var library = {
 			{
 			label:"RegEx engine",
 			desc:"While the core feature set of regular expressions is fairly consistent, different implementations (ex. Perl vs Java) may have different features or behaviours."+
-				"<p>RegExr uses your browser's RegExp engine for matching, and its syntax highlighting and documentation reflect the JavaScript RegExp standard.</p>"
+				 "Regxr currenly supports Javascript RegEx (your browser) and PCRE via PHP.",
+			kids: [
+				{
+					label:"Javascript",
+					desc:"By default RegExr uses your browser's RegExp engine for matching, and its syntax highlighting and documentation reflect the JavaScript RegExp standard."
+				},
+				{
+					label:"PCRE (PHP)",
+					desc:"PHP '{{getPHPVersion()}}' and PCRE '{{getPCREVersion()}}' are used to execute your expression."
+				}
+			]
 			},
 			{
 			id:"infinite",
@@ -552,6 +562,26 @@ var misc = {
 		{
 		id:"ERROR",
 		tip:"Errors in the expression are underlined in red. Roll over errors for more info."
+		},
+		{
+		id:"PREG_INTERNAL_ERROR",
+		tip:"Internal PCRE error"
+		},
+		{
+		id:"PREG_BACKTRACK_LIMIT_ERROR",
+		tip:"Backtrack limit was exhausted."
+		},
+		{
+		id:"PREG_RECURSION_LIMIT_ERROR",
+		tip:"Recursion limit was exhausted"
+		},
+		{
+		id:"PREG_BAD_UTF8_ERROR",
+		tip:"Malformed UTF-8 data"
+		},
+		{
+		id:"PREG_BAD_UTF8_OFFSET_ERROR",
+		tip:"Malformed UTF-8 data"
 		}
 	]
 };
@@ -567,6 +597,7 @@ var errors = {
 	lookbehind:"Lookbehind is not supported in JavaScript.",
 	fwdslash:"Unescaped forward slash.",
 	esccharbad:"Invalid escape sequence."
+
 
 	// infinite is handled in the Help section.
 };

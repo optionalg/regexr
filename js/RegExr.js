@@ -7,6 +7,10 @@ require('classlist-polyfill');
 require('./third-party/history.adapter.native.js');
 require('./third-party/history.js');
 
+if (typeof window.DEBUG === "undefined") {
+    window.DEBUG = true;
+}
+
 // Import some classes into a shared object, for use in the index.template.js
 var Utils = require('./utils/Utils');
 window.$ = RegExrShared.Utils = Utils;
@@ -24,3 +28,6 @@ RegExrShared.LibView = require('./views/LibView');
 RegExrShared.ExpressionModel = require('./net/ExpressionModel');
 RegExrShared.Settings = require('./Settings');
 RegExrShared.TransitionEvents = require('./events/TransitionEvents');
+
+//wdg: Not ideal here, but this way we only load it once per session.
+RegExrShared.ServerModel.loadServerVersionDetails();
