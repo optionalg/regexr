@@ -537,10 +537,12 @@ p.resize = function () {
 p.update = function () {
 	this.error = null;
 
+	var type = RegExJS.PCRE;
+
 	var matches = this.matches;
 	var str = this.sourceCM.getValue();
 	var expr = this.expressionCM.getValue();
-	var regex = this.getRegEx();
+	var regex = this.getRegEx(true, type);
 	this.expressionHighlighter.draw(this.exprLexer.parse(expr));
 	this.expressionHover.token = this.exprLexer.token;
 	matches.length = 0;
@@ -555,7 +557,7 @@ p.update = function () {
 	}
 
 	var _this = this;
-	RegExJS.match(regex, str, RegExJS.PCRE, function (error, matches) {
+	RegExJS.match(regex, str, type, function (error, matches) {
 		_this.error = error;
 		_this.matches = matches;
 
@@ -573,16 +575,20 @@ p.update = function () {
 	});
 };
 
-p.getRegEx = function(global) {
-	var regex, o = this.decomposeExpression(this.expressionCM.getValue());
+p.getRegEx = function(global, type) {
+	if (type == null || type == RegExJS.JS) {
+		var regex, o = this.decomposeExpression(this.expressionCM.getValue());
 	
-	if (global === true && o.flags.indexOf("g") === -1) { o.flags += "g"; }
-	else if (global === false) { o.flags = o.flags.replace("g",""); }
-	
-	try {
-		regex = new RegExp(o.pattern, o.flags);
-	} catch (e) {}
-	return regex;
+		if (global === true && o.flags.indexOf("g") === -1) { o.flags += "g"; }
+		else if (global === false) { o.flags = o.flags.replace("g",""); }
+		
+		try {
+			regex = new RegExp(o.pattern, o.flags);
+		} catch (e) {}
+		return regex;
+	} else if (type == RegExJS.PCRE) {
+		return this.expressionCM.getValue();
+	}
 }
 
 p.updateTool = function (source, regex) {
