@@ -25,7 +25,9 @@ s.match = function (regex, str, type, callback) {
 };
 
 s._processPCRE = function(regex, str, callback) {
-	ServerModel.executeRegex(encodeURIComponent(Utils.addSlashes(regex)), encodeURIComponent(str)).then(function(result) {
+	var json = JSON.stringify({pattern: regex.toString(), str: str});
+	
+	ServerModel.executeRegex(json).then(function(result) {
 		var error = null;
 		if (result == null) {
 			error = "ERROR";

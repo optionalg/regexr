@@ -111,8 +111,8 @@ s.getPatternList = function (ids) {
 	return s._createPromise("getPatternList", {idList: ids}).then(s.formatPattern);
 };
 
-s.executeRegex = function (pattern, text) {
-	return s._createPromise("executeRegex", {pattern: pattern, text: text})
+s.executeRegex = function (value) {
+	return s._createPromise("executeRegex", {data: value})
 };
 
 
