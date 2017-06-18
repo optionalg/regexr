@@ -62,7 +62,8 @@ RegExLexer.UNQUANTIFIABLE = {
 	"notwordboundary": true,
 	"lazy": true,
 	"alt": true,
-	"open": true
+	"open": true,
+	"condition": true
 };
 
 RegExLexer.ESC_CHAR_CODES = {
@@ -78,9 +79,10 @@ p.string = null;
 p.token = null;
 p.errors = null;
 p.captureGroups = null;
+p.profile = {};
 
 p.parse = function (str) {
-	if (str == this.string) {
+	if (str === this.string) {
 		return this.token;
 	}
 
@@ -98,17 +100,19 @@ p.parse = function (str) {
 
 		token = {i: i, l: 1, prev: prev};
 
-		if (i == 0 || i >= closeIndex) {
+		if (i === 0 || i >= closeIndex) {
 			this.parseFlag(str, token);
-		} else if (c == "(" && !charset) {
-			this.parseGroup(str, token);
-			token.depth = groups.length;
-			groups.push(token);
+		} else if (c === "(" && !charset) {
+			this.parseParen(str, token);
+			if (token.close === true) {
+				token.depth = groups.length;
+				groups.push(token);
+			}
 			if (token.capture) {
 				capgroups.push(token);
 				token.num = capgroups.length;
 			}
-		} else if (c == ")" && !charset) {
+		} else if (c === ")" && !charset) {
 			token.type = "groupclose";
 			if (groups.length) {
 				o = token.open = groups.pop();
@@ -116,29 +120,29 @@ p.parse = function (str) {
 			} else {
 				token.err = "groupclose";
 			}
-		} else if (c == "[" && !charset) {
+		} else if (c === "[" && !charset) {
 			token.type = token.clss = "set";
 			charset = token;
-			if (str[i + 1] == "^") {
+			if (str[i + 1] === "^") {
 				token.l++;
 				token.type += "not";
 			}
-		} else if (c == "]" && charset) {
+		} else if (c === "]" && charset) {
 			token.type = "setclose";
 			token.open = charset;
 			charset.close = token;
 			charset = null;
-		} else if ((c == "+" || c == "*") && !charset) {
+		} else if ((c === "+" || c === "*") && !charset) {
 			token.type = charTypes[c];
 			token.clss = "quant";
-			token.min = (c == "+" ? 1 : 0);
+			token.min = (c === "+" ? 1 : 0);
 			token.max = -1;
-		} else if (c == "{" && !charset && str.substr(i).search(/^{\d+,?\d*}/) != -1) {
+		} else if (c === "{" && !charset && str.substr(i).search(/^{\d+,?\d*}/) !== -1) {
 			this.parseQuant(str, token);
-		} else if (c == "\\") {
+		} else if (c === "\\") {
 			this.parseEsc(str, token, charset, capgroups, closeIndex);
-		} else if (c == "?" && !charset) {
-			if (!prev || prev.clss != "quant") {
+		} else if (c === "?" && !charset) {
+			if (!prev || prev.clss !== "quant") {
 				token.type = charTypes[c];
 				token.clss = "quant";
 				token.min = 0;
@@ -147,7 +151,7 @@ p.parse = function (str) {
 				token.type = "lazy";
 				token.related = [prev];
 			}
-		} else if (c == "-" && charset && prev.code != null && prev.prev && prev.prev.type != "range") {
+		} else if (c === "-" && charset && prev.code !== undefined && prev.prev && prev.prev.type !== "range") { // TODO: !== ?
 			// this may be the start of a range, but we'll need to validate after the next token.
 			token.type = "range";
 		} else {
@@ -159,7 +163,8 @@ p.parse = function (str) {
 		}
 
 		// post processing:
-		if (token.clss == "quant") {
+		var curGroup = groups.length ? groups[groups.length-1] : null;
+		if (token.clss === "quant") {
 			if (!prev || unquantifiable[prev.type]) {
 				token.err = "quanttarg";
 			}
@@ -167,7 +172,14 @@ p.parse = function (str) {
 				token.related = [prev.open || prev];
 			}
 		}
-		if (prev && prev.type == "range" && prev.l == 1) {
+		if (curGroup && curGroup.type === "conditional" && token.type === "alt") {
+			// TODO: we can flesh this out more with its own type
+			if (!curGroup.alt) { curGroup.alt = token; }
+			else { token.err = "conditionalalt"; } // TODO: maybe switch to "warn"?
+			token.related = [curGroup];
+			token.clss = "special";
+		}
+		if (prev && prev.type === "range" && prev.l === 1) {
 			token = this.validateRange(str, prev);
 		}
 		if (token.open && !token.clss) {
@@ -184,6 +196,7 @@ p.parse = function (str) {
 		prev = token;
 	}
 
+
 	while (groups.length) {
 		this.errors.push(groups.pop().err = "groupopen");
 	}
@@ -191,15 +204,17 @@ p.parse = function (str) {
 		this.errors.push(charset.err = "setopen");
 	}
 
+	// TODO: TMP
+	this.errors.length = 0;
 	return this.token;
 };
 
 p.parseFlag = function (str, token) {
 	// note that this doesn't deal with misformed patterns or incorrect flags.
 	var i = token.i, c = str[i];
-	if (str[i] == "/") {
-		token.type = (i == 0) ? "open" : "close";
-		if (i != 0) {
+	if (str[i] === "/") {
+		token.type = (i === 0) ? "open" : "close";
+		if (i !== 0) {
 			token.related = [this.token];
 			this.token.related = [token];
 		}
@@ -212,39 +227,124 @@ p.parseFlag = function (str, token) {
 p.parseChar = function (str, token, charset) {
 	var c = str[token.i];
 	token.type = (!charset && RegExLexer.CHAR_TYPES[c]) || "char";
-	if (!charset && c == "/") {
+	if (!charset && c === "/") {
 		token.err = "fwdslash";
 	}
-	if (token.type == "char") {
+	if (token.type === "char") {
 		token.code = c.charCodeAt(0);
-	} else if (token.type == "bof" || token.type == "eof") {
+	} else if (token.type === "bof" || token.type === "eof") {
 		token.clss = "anchor";
-	} else if (token.type == "dot") {
+	} else if (token.type === "dot") {
 		token.clss = "charclass";
 	}
 	return token;
 };
 
-p.parseGroup = function (str, token) {
-	token.clss = "group";
-	var match = str.substr(token.i + 1).match(/^\?(?::|<?[!=])/);
-	var s = match && match[0];
-	if (s == "?:") {
-		token.l = 3;
-		token.type = "noncapgroup";
-	} else if (s) {
-		token.behind = s[1] == "<";
-		token.negative = s[1 + token.behind] == "!";
-		token.clss = "lookaround";
-		token.type = (token.negative ? "neg" : "pos") + "look" + (token.behind ? "behind" : "ahead");
-		token.l = s.length + 1;
-		if (token.behind) {
-			token.err = "lookbehind";
-		} // not supported in JS
-	} else {
-		token.type = "group";
+p.parseParen = function (str, token) {
+	// TODO: will need to "post-link" references, conditionals, etc since forward references are allowed
+	/*
+	core:
+.		capgroup
+.		lookahead: ?= ?!
+.		noncap: ?:
+	PCRE:
+.		lookbehind: ?<= ?<!
+.		named: ?P<name> ?'name' ?<name>
+.		namedref: ?P=name		Also: \g'name' \k'name' etc
+.		comment: ?#
+.		atomic: ?>
+.		recursion: ?0 ?R		Also: \g<0>
+.		define: ?(DEFINE)
+.		subroutine: ?1 ?-1 ?&name ?P>name
+		conditionalgroup: ?(1)a|b ?(-1)a|b ?(name)a|b
+		conditional: ?(?=if)then|else
+		mode: ?c-i
+	*/
+
+	token.clss = token.type = "group";
+	if (str[token.i+1] !== "?") {
+		token.close = true; // indicates that it needs a close token.
 		token.capture = true;
+		return token;
 	}
+
+	var sub = str.substr(token.i+2), match, s=sub[0];
+
+	if (s === ":") {
+		token.type = "noncapgroup";
+		token.close = true;
+		token.l = 3;
+	} else if (s === ">") {
+		token.type = "atomic";
+		token.close = true;
+		token.l = 3;
+	} else if (s === "#" && (match = sub.match(/[^)]*\)/))) {
+		token.clss = token.type = "comment";
+		token.l = 2+match[0].length;
+	} else if (/^(R|0)\)/.test(sub)) {
+		token.clss = "ref";
+		token.type = "recursion";
+		token.l = 4;
+	} else if (match = sub.match(/^P=(\w+)\)/i)) {
+		token.clss = "ref";
+		token.type = "namedref";
+		token.name = match[1];
+		token.l = match[0].length+2;
+	} else if (/^\(DEFINE\)/.test(sub)) {
+		token.type = "define";
+		token.close = true;
+		token.l = 10;
+	} else if (match = sub.match(/^<?[=!]/)) {
+		var isCond = token.prev.type === "conditional";
+		token.clss = isCond ? "special" : "lookaround";
+		token.close = true;
+		s = match[0];
+		token.behind = s[0] === "<";
+		token.negative = s[+token.behind] === "!";
+		token.type = isCond ? "condition" : (token.negative ? "neg" : "pos") + "look" + (token.behind ? "behind" : "ahead");
+		if (isCond) {
+			// TODO: this doesn't highlight correctly yet:
+			token.related = [token.prev];
+			token.prev.related = [token];
+			token.prev.condition = token;
+		}
+		token.l = s.length + 2;
+	} else if ((match = sub.match(/^'(\w+)'/)) || (match = sub.match(/^P?<(\w+)>/))) {
+		token.type = "namedgroup";
+		token.close = true;
+		token.name = match[1];
+		token.capture = true;
+		token.l = match[0].length + 2;
+	} else if ((match = sub.match(/^([-+]?\d\d?)\)/)) || (match = sub.match(/^(?:&|P>)(\w+)\)/))) {
+		token.clss = "ref";
+		token.type = "subroutine";
+		token.name = match[1]; // TODO: need to deal with this elsewhere
+		token.l = match[0].length + 2;
+	} else if (false && (match = sub.match(/^\(([-+]?\d\d?)\)/)) || (match = sub.match(/^\((\w+)\)/))) {
+		token.clss = "special";
+		token.type = "conditionalgroup";
+		token.close = true;
+		token.name = match[1];
+		token.l = match[0].length + 2;
+	} else if (/^\(\?<?[=!]/.test(sub)) {
+		token.clss = "special";
+		token.type = "conditional";
+		token.close = true;
+		token.l = 2;
+	} else if (match = sub.match(/^[-ixsmJU]+\)/)) {
+		// supported modes in PCRE: i-caseinsens, x-freespacing, s-dotall, m-multiline, J-samename, U-switchlazy
+		// TODO: in the future, we could potentially support x, s, U  modes correctly in the lexer
+		token.clss = "special";
+		token.type = "mode";
+		token.l = match[0].length + 2;
+	} else {
+		// error, found a (? without matching anything. Treat it as a normal group and let it error out.
+		token.close = token.capture = true;
+	}
+
+	// TODO: should this just be global?
+	token.supported = this.profile[token.type] !== 0;
+
 	return token;
 };
 
@@ -255,13 +355,14 @@ p.parseEsc = function (str, token, charset, capgroups, closeIndex) {
 	// Note: Chrome does weird things with \x & \u depending on a number of factors, we ignore this.
 	var i = token.i, jsMode = token.js, match, o;
 	var sub = str.substr(i + 1), c = sub[0];
-	if (i + 1 == (closeIndex || str.length)) {
+	if (i + 1 === (closeIndex || str.length)) {
 		token.err = "esccharopen";
 		return;
 	}
 
 	if (!jsMode && !charset && (match = sub.match(/^\d\d?/)) && (o = capgroups[parseInt(match[0]) - 1])) {
 		// back reference - only if there is a matching capture group
+		token.clss = "ref";
 		token.type = "backref";
 		token.related = [o];
 		token.group = o;
@@ -307,7 +408,7 @@ p.parseEsc = function (str, token, charset, capgroups, closeIndex) {
 	} else {
 		// single char
 		token.l++;
-		if (jsMode && (c == "x" || c == "u")) {
+		if (jsMode && (c === "x" || c === "u")) {
 			token.err = "esccharbad";
 		}
 		if (!jsMode) {
@@ -315,12 +416,12 @@ p.parseEsc = function (str, token, charset, capgroups, closeIndex) {
 		}
 
 		if (token.type) {
-			token.clss = (c.toLowerCase() == "b") ? "anchor" : "charclass";
+			token.clss = (c.toLowerCase() === "b") ? "anchor" : "charclass";
 			return token;
 		}
 		token.type = "escchar";
 		token.code = RegExLexer.ESC_CHAR_CODES[c];
-		if (token.code == null) {
+		if (token.code === undefined) { // TODO: === ?
 			token.code = c.charCodeAt(0);
 		}
 	}
@@ -335,8 +436,8 @@ p.parseQuant = function (str, token) {
 	token.l += end - i;
 	var arr = str.substring(i + 1, end).split(",");
 	token.min = parseInt(arr[0]);
-	token.max = (arr[1] == null) ? token.min : (arr[1] == "") ? -1 : parseInt(arr[1]);
-	if (token.max != -1 && token.min > token.max) {
+	token.max = (arr[1] === undefined) ? token.min : (arr[1] == "") ? -1 : parseInt(arr[1]); // TODO: === ?
+	if (token.max !== -1 && token.min > token.max) {
 		token.err = "quantrev";
 	}
 	return token;
@@ -344,7 +445,7 @@ p.parseQuant = function (str, token) {
 
 p.validateRange = function (str, token) {
 	var prev = token.prev, next = token.next;
-	if (prev.code == null || next.code == null) {
+	if (prev.code === undefined || next.code === undefined) { // TODO: === ?
 		// not a range, rewrite as a char:
 		this.parseChar(str, token);
 	} else {
