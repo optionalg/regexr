@@ -78,12 +78,13 @@ RegExLexer.ESC_CHAR_CODES = {
 	"r": 13  // cr
 };
 
+
 p.string = null;
 p.token = null;
 p.errors = null;
 p.captureGroups = null;
 p.namedGroups = null;
-p.profile = {};
+p.pcreMode = true;
 
 p.parse = function (str) {
 	if (str === this.string) {
@@ -95,7 +96,7 @@ p.parse = function (str) {
 	this.errors = [];
 	var capgroups = this.captureGroups = [];
 	var namedgroups = this.namedGroups = {};
-	var groups = [], i = 0, l = str.length;
+	var groups = [], refs = [], i = 0, l = str.length;
 	var o, c, token, prev = null, charset = null, unquantifiable = RegExLexer.UNQUANTIFIABLE;
 	var charTypes = RegExLexer.CHAR_TYPES;
 	var closeIndex = str.lastIndexOf("/");
@@ -146,7 +147,7 @@ p.parse = function (str) {
 		} else if (c === "{" && !charset && str.substr(i).search(/^{\d+,?\d*}/) !== -1) {
 			this.parseQuant(str, token);
 		} else if (c === "\\") {
-			this.parseEsc(str, token, charset, capgroups, closeIndex);
+			this.parseEsc(str, token, charset, closeIndex);
 		} else if (c === "?" && !charset) {
 			if (!prev || prev.clss !== "quant") {
 				token.type = charTypes[c];
@@ -178,6 +179,9 @@ p.parse = function (str) {
 				token.related = [prev.open || prev];
 			}
 		}
+		if (token.group === true) {
+			refs.push(token);
+		}
 		if (curGroup && curGroup.type === "conditional" && token.type === "alt") {
 			if (!curGroup.alt) { curGroup.alt = token; }
 			else { token.err = "extraelse"; }
@@ -195,6 +199,7 @@ p.parse = function (str) {
 		if (!this.token) {
 			this.token = token;
 		}
+		// TODO: is setting token.end necessary? Complicates post-processing.
 		i = token.end = token.i + token.l;
 		if (token.err) {
 			this.errors.push(token.err);
@@ -206,6 +211,7 @@ p.parse = function (str) {
 	while (groups.length) {
 		this.errors.push(groups.pop().err = "groupopen");
 	}
+	this.matchRefs(refs, capgroups, namedgroups);
 	if (charset) {
 		this.errors.push(charset.err = "setopen");
 	}
@@ -213,6 +219,61 @@ p.parse = function (str) {
 	// TODO: TMP
 	this.errors.length = 0;
 	return this.token;
+};
+
+p.getRef = function(token, str) {
+	token.clss = "ref";
+	token.group = true;
+	token.relIndex = this.captureGroups.length;
+	token.name = str;
+};
+
+p.matchRefs = function(refs, indexes, names) {
+	while (refs.length) {
+		var token = refs.pop(), name=token.name, group=names[name];
+		if (!group) {
+			var sign = name[0], index = parseInt(name) + ((sign === "+" || sign === "-") ? token.relIndex : 0);
+			if (sign === "-") { index++; }
+			group = indexes[index-1];
+		}
+		if (group) {
+			token.group = group;
+			token.related = [group];
+			token.forward = (token.i < group.i);
+		} else {
+			if (this.refToOctal(token)) { continue; }
+			this.errors.push(token.err = "unmatchedref");
+		}
+	}
+};
+
+p.refToOctal = function(token) {
+	// PCRE: \# \0 = unmatched, \00 = octal, \## = dunno?
+	// JS: \# = unmatched?, \0 \00 = octal, \## = dunno
+	if (token.type !== "reference") { return false; } // simple \13 style
+	var name = token.name;
+	if (/^[0-7]{2}$/.test(name)) { // octal
+		var next = token.next, char = String.fromCharCode(next.code);
+		if (next.type === "char" && char >= "0" && char <= "7" && parseInt(name+char, 8) <= 255) {
+			name += char;
+			this.mergeNext(token);
+		}
+	} else if (this.pcreMode || !/^[0-7]$/.test(name)) {
+		return false;
+	}
+	token.code = parseInt(name,8);
+	token.clss = "esc";
+	token.type = "escoctal";
+	delete token.name;
+	return true;
+};
+
+p.mergeNext = function(token) {
+	var next = token.next;
+	token.next = next.next;
+	token.next.prev = token;
+	token.l++;
+	if (token.end !== undefined) { token.end++; }
 };
 
 p.parseFlag = function (str, token) {
@@ -292,9 +353,8 @@ p.parseParen = function (str, token) {
 		token.type = "recursion";
 		token.l = 4;
 	} else if (match = sub.match(/^P=(\w+)\)/i)) {
-		token.clss = "ref";
 		token.type = "namedref";
-		token.name = match[1];
+		this.getRef(token, match[1]);
 		token.l = match[0].length+2;
 	} else if (/^\(DEFINE\)/.test(sub)) {
 		token.type = "define";
@@ -322,9 +382,8 @@ p.parseParen = function (str, token) {
 		token.capture = true;
 		token.l = match[0].length + 2;
 	} else if ((match = sub.match(/^([-+]?\d\d?)\)/)) || (match = sub.match(/^(?:&|P>)(\w+)\)/))) {
-		token.clss = "ref";
 		token.type = "subroutine";
-		token.name = match[1]; // TODO: need to deal with this elsewhere
+		this.getRef(token, match[1]);
 		token.l = match[0].length + 2;
 	} else if (false && (match = sub.match(/^\(([-+]?\d\d?)\)/)) || (match = sub.match(/^\((\w+)\)/))) {
 		token.clss = "special";
@@ -349,12 +408,12 @@ p.parseParen = function (str, token) {
 	}
 
 	// TODO: should this just be global?
-	token.supported = this.profile[token.type] !== 0;
+	//token.supported = this.profile[token.type] !== 0;
 
 	return token;
 };
 
-p.parseEsc = function (str, token, charset, capgroups, closeIndex) {
+p.parseEsc = function (str, token, charset, closeIndex) {
 	// jsMode tries to read escape chars as a JS string which is less permissive than JS RegExp, and doesn't support \c or backreferences, used for subst
 
 	// Note: \8 & \9 are treated differently: IE & Chrome match "8", Safari & FF match "\8", we support the former case since Chrome & IE are dominant
@@ -366,12 +425,10 @@ p.parseEsc = function (str, token, charset, capgroups, closeIndex) {
 		return;
 	}
 
-	if (!jsMode && !charset && (match = sub.match(/^\d\d?/)) && (o = capgroups[parseInt(match[0]) - 1])) {
-		// back reference - only if there is a matching capture group
-		token.clss = "ref";
-		token.type = "backref";
-		token.related = [o];
-		token.group = o;
+	if (!jsMode && !charset && (match = sub.match(/^\d\d?/))) {
+		// we will write this as a reference for now, and re-write it later if it doesn't match a group
+		token.type = "reference";
+		this.getRef(token, match[0]);
 		token.l += match[0].length;
 		return token;
 	}
@@ -400,7 +457,7 @@ p.parseEsc = function (str, token, charset, capgroups, closeIndex) {
 			token.code = code;
 		}
 	} else if (match = sub.match(/^[0-7]{1,3}/)) {
-		// octal ascii
+		// octal ascii: \011
 		sub = match[0];
 		if (parseInt(sub, 8) > 255) {
 			sub = sub.substr(0, 2);

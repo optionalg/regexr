@@ -288,7 +288,7 @@ var library = {
 				token:"(ABC)"
 				},
 				{
-				id:"backref",
+				id:"reference",
 				label:"backreference",
 				tip:"Matches the results of capture group #{{group.num}}.",
 				desc:"Matches the results of a previous capture group. For example <code>\\1</code> matches the results of the first capture group & <code>\\3</code> matches the third.",
