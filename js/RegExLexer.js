@@ -63,7 +63,10 @@ RegExLexer.UNQUANTIFIABLE = {
 	"lazy": true,
 	"alt": true,
 	"open": true,
-	"condition": true
+	"condition": true,
+	"condition_close": true,
+	"conditional": true, // conditional open
+	"mode": true
 };
 
 RegExLexer.ESC_CHAR_CODES = {
@@ -79,6 +82,7 @@ p.string = null;
 p.token = null;
 p.errors = null;
 p.captureGroups = null;
+p.namedGroups = null;
 p.profile = {};
 
 p.parse = function (str) {
@@ -90,6 +94,7 @@ p.parse = function (str) {
 	this.string = str;
 	this.errors = [];
 	var capgroups = this.captureGroups = [];
+	var namedgroups = this.namedGroups = {};
 	var groups = [], i = 0, l = str.length;
 	var o, c, token, prev = null, charset = null, unquantifiable = RegExLexer.UNQUANTIFIABLE;
 	var charTypes = RegExLexer.CHAR_TYPES;
@@ -110,6 +115,7 @@ p.parse = function (str) {
 			}
 			if (token.capture) {
 				capgroups.push(token);
+				if (token.name) { namedgroups[token.name] = token; }
 				token.num = capgroups.length;
 			}
 		} else if (c === ")" && !charset) {
@@ -165,7 +171,7 @@ p.parse = function (str) {
 		// post processing:
 		var curGroup = groups.length ? groups[groups.length-1] : null;
 		if (token.clss === "quant") {
-			if (!prev || unquantifiable[prev.type]) {
+			if (!prev || unquantifiable[prev.type] || (prev.open && unquantifiable[prev.open.type+"_close"])) {
 				token.err = "quanttarg";
 			}
 			else {
@@ -173,10 +179,10 @@ p.parse = function (str) {
 			}
 		}
 		if (curGroup && curGroup.type === "conditional" && token.type === "alt") {
-			// TODO: we can flesh this out more with its own type
 			if (!curGroup.alt) { curGroup.alt = token; }
-			else { token.err = "conditionalalt"; } // TODO: maybe switch to "warn"?
+			else { token.err = "extraelse"; }
 			token.related = [curGroup];
+			token.type = "conditionalelse";
 			token.clss = "special";
 		}
 		if (prev && prev.type === "range" && prev.l === 1) {
@@ -304,7 +310,7 @@ p.parseParen = function (str, token) {
 		token.type = isCond ? "condition" : (token.negative ? "neg" : "pos") + "look" + (token.behind ? "behind" : "ahead");
 		if (isCond) {
 			// TODO: this doesn't highlight correctly yet:
-			token.related = [token.prev];
+			token.proxy = token.prev;
 			token.prev.related = [token];
 			token.prev.condition = token;
 		}

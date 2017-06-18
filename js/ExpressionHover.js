@@ -79,8 +79,11 @@ p.onMouseMove = function (evt) {
 			token = token.next;
 		}
 	}
-	if (target && target.proxy) {
-		target = target.proxy;
+
+	while (target) {
+		if (target.open) { target = target.open; }
+		else if (target.proxy) { target = target.proxy; }
+		else { break; }
 	}
 
 	this.highlighter.selectToken(target);

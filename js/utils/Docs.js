@@ -117,15 +117,12 @@ Docs.forMatch = function (match) {
 };
 
 Docs.forToken = function (token) {
+	if (!token) { return null; }
+
 	var pre = "", post = "", label = "", docs = Docs.content;
-	if (!token) {
-		return null;
-	}
-	if (token.open) {
-		token = token.open;
-	}
+
 	if (token.err) {
-		return "<span class='error-title'>ERROR: </span>" + docs.errors[token.err] || "[" + token.err + "]";
+		return "<span class='error-title'>ERROR: </span>" + (docs.errors[token.err] || "[" + token.err + "]");
 	}
 
 	var type = token.type, clss = token.clss, ids = Docs.ids, id = type, tip;
