@@ -46,7 +46,7 @@ RegExLexer.ESC_CHARS_SPECIAL = {
 	"S": "notwhitespace",
 	"b": "wordboundary",
 	"B": "notwordboundary"
-	// u-uni, x-hex, c-ctrl, oct handled in parseEsc
+	// u-uni, c-ctrl, oct handled in parseEsc
 };
 
 RegExLexer.PCRE_ESC_CHARS_SPECIAL = {
@@ -54,7 +54,11 @@ RegExLexer.PCRE_ESC_CHARS_SPECIAL = {
 	"A": "bos",
 	"Z": "eos",
 	"z": "abseos",
-	"K": "keep"
+	"K": "keep",
+	"h": "hwhitespace",
+	"H": "nothwhitespace",
+	"N": "notlinebreak"
+	// x-hex handled in parseEsc
 };
 
 RegExLexer.UNQUANTIFIABLE = {
