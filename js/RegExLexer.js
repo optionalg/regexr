@@ -46,7 +46,7 @@ RegExLexer.ESC_CHARS_SPECIAL = {
 	"S": "notwhitespace",
 	"b": "wordboundary",
 	"B": "notwordboundary"
-	// u-uni, c-ctrl, oct handled in parseEsc
+	// u-uni, c-ctrl, x-hex, oct handled in parseEsc
 };
 
 RegExLexer.PCRE_ESC_CHARS_SPECIAL = {
@@ -58,7 +58,6 @@ RegExLexer.PCRE_ESC_CHARS_SPECIAL = {
 	"h": "hwhitespace",
 	"H": "nothwhitespace",
 	"N": "notlinebreak"
-	// x-hex handled in parseEsc
 };
 
 RegExLexer.UNQUANTIFIABLE = {
@@ -88,6 +87,11 @@ RegExLexer.ESC_CHAR_CODES = {
 	"v": 11, // vertical tab
 	"f": 12, // form feed
 	"r": 13  // cr
+};
+
+RegExLexer.PCRE_ESC_CHAR_CODES = {
+	"a": 7,
+	"e": 27
 };
 
 
@@ -128,7 +132,7 @@ p.parse = function (str) {
 			}
 			if (token.capture) {
 				capgroups.push(token);
-				if (token.name) { namedgroups[token.name] = token; }
+				if (token.name && isNaN(token.name)) { namedgroups[token.name] = token; }
 				token.num = capgroups.length;
 			}
 		} else if (c === ")" && !charset) {
@@ -441,9 +445,20 @@ p.parseEsc = function (str, token, charset, closeIndex) {
 	}
 
 	if (!jsMode && !charset && (match = sub.match(/^\d\d?/))) {
+		// basic reference: \1 \22
 		// we will write this as a reference for now, and re-write it later if it doesn't match a group
 		token.type = "reference";
 		this.getRef(token, match[0]);
+		token.l += match[0].length;
+		return token;
+	}
+	if (!jsMode && this.pcreMode && !charset && (match = sub.match(/^[gk](?:'(?:\w*|[-+]?\d\d?)'|<(?:\w*|[-+]?\d\d?)>|{(?:\w*|[-+]?\d\d?)})/))) {
+		// named reference: \k<name> \k'name' \k{name}
+		// subroutine: \g{name} \g<-1> \g'1' (and all combinations)
+		var name = match[0].substr(2, match[0].length-3);
+		token.type = c === "g" ? "subroutine" : "namedref";
+		if (c === "k" && !isNaN(name)) { name = ""; } // TODO: error?
+		this.getRef(token, name);
 		token.l += match[0].length;
 		return token;
 	}
@@ -502,7 +517,10 @@ p.parseEsc = function (str, token, charset, closeIndex) {
 		}
 		token.type = "escchar";
 		token.code = RegExLexer.ESC_CHAR_CODES[c];
-		if (token.code === undefined) { // TODO: === ?
+		if (token.code === undefined && this.pcreMode) {
+			token.code = RegExLexer.PCRE_ESC_CHAR_CODES[c];
+		}
+		if (token.code === undefined) {
 			token.code = c.charCodeAt(0);
 		}
 	}
