@@ -31,7 +31,7 @@ var Explain = {};
 Explain.forExpression = function(expr, token, highlighter) {
 	var groupClasses = ExpressionHighlighter.GROUP_CLASS_BY_TYPE, pre = "exp-";
 	var result = $.div(null, "explain"), el = result;
-	
+
 	var enterHandler = function(evt) {
 		var o = evt.currentTarget;
 		highlighter.selectToken(o.token);
@@ -43,10 +43,11 @@ Explain.forExpression = function(expr, token, highlighter) {
 		$.removeClass(evt.currentTarget, "selected");
 		evt.stopPropagation();
 	};
-	
+
 	while ((token = token.next) && (token.type != "close")) {
+		// TODO: add support for conditionals
 		if (token.proxy) { continue; }
-		
+
 		var i = token.i, end = token.end, content=expr.substring(i, end);
 		if (token.set) {
 			var set0=token.set[0], set2=token.set[2];
@@ -59,8 +60,8 @@ Explain.forExpression = function(expr, token, highlighter) {
 		if (!token.open) { content += Docs.forToken(token); }
 		var div = $.div(content);
 		el.appendChild(div);
-		
-		if (token.close) { 
+
+		if (token.close) {
 			className = groupClasses[token.clss || token.type];
 			if (className) {
 				className = className.replace("%depth%", token.depth);
@@ -68,27 +69,27 @@ Explain.forExpression = function(expr, token, highlighter) {
 			}
 			el = div;
 		}
-		
-		if (token.clss == "quant" || token.type == "lazy") {
+
+		if (token.clss == "quant" || token.type == "lazy" || token.type == "possessive") {
 			$.addClass(div, "related");
 		}
-		
+
 		if (token.open) {
 			$.addClass(div, "close");
 			el = el.parentNode;
 		}
-		
+
 		if (token.err) {
 			$.addClass(div, "error");
 		}
-		
+
 		if (!token.open) {
 			div.token = token;
 			div.addEventListener("mouseover", enterHandler);
 			div.addEventListener("mouseout", exitHandler);
 		}
 	}
-	
+
 	return result;
 };
 module.exports = Explain;

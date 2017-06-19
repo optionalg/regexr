@@ -30,7 +30,7 @@ var p = RegExLexer.prototype;
 RegExLexer.CHAR_TYPES = {
 	".": "dot",
 	"|": "alt",
-	"$": "eof",
+	"$": "eof", // TODO: rename?
 	"^": "bof",
 	"?": "opt", // also: "lazy"
 	"+": "plus",
@@ -47,6 +47,14 @@ RegExLexer.ESC_CHARS_SPECIAL = {
 	"b": "wordboundary",
 	"B": "notwordboundary"
 	// u-uni, x-hex, c-ctrl, oct handled in parseEsc
+};
+
+RegExLexer.PCRE_ESC_CHARS_SPECIAL = {
+	"G": "prevmatchend",
+	"A": "bos",
+	"Z": "eos",
+	"z": "abseos",
+	"K": "keep"
 };
 
 RegExLexer.UNQUANTIFIABLE = {
@@ -139,6 +147,9 @@ p.parse = function (str) {
 			token.open = charset;
 			charset.close = token;
 			charset = null;
+		} else if (c === "+" && prev && prev.clss === "quant" && this.pcreMode) {
+			token.type = "possessive";
+			token.related = [prev];
 		} else if ((c === "+" || c === "*") && !charset) {
 			token.type = charTypes[c];
 			token.clss = "quant";
@@ -476,6 +487,9 @@ p.parseEsc = function (str, token, charset, closeIndex) {
 		}
 		if (!jsMode) {
 			token.type = RegExLexer.ESC_CHARS_SPECIAL[c];
+			if (!token.type && this.pcreMode) {
+				token.type = RegExLexer.PCRE_ESC_CHARS_SPECIAL[c];
+			}
 		}
 
 		if (token.type) {
