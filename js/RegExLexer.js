@@ -57,7 +57,8 @@ RegExLexer.PCRE_ESC_CHARS_SPECIAL = {
 	"K": "keep",
 	"h": "hwhitespace",
 	"H": "nothwhitespace",
-	"N": "notlinebreak"
+	"N": "notlinebreak",
+	"X": "unicodegrapheme"
 };
 
 RegExLexer.UNQUANTIFIABLE = {
@@ -483,18 +484,17 @@ p.parseEsc = function (str, token, charset, closeIndex) {
 		if ((i = sub.indexOf("\\E")) !== -1) { token.l += i+2; }
 		else { token.l += closeIndex-token.i-1; }
 		console.log(i);
-	} else if (!this.pcreMode && (match = sub.match(/^u([\da-f]{4})/i))) {
+	} else if (!this.pcreMode && (match = sub.match(/^u([\da-fA-F]{4})/))) {
 		// unicode: \uFFFF
 		token.type = "escunicode";
 		token.l += match[0].length;
 		token.code = parseInt(match[1], 16);
-	} else if (this.pcreMode && (match = sub.match(/^x\{([\da-f]*)}/i))) {
+	} else if (this.pcreMode && (match = sub.match(/^x\{([\da-fA-F]+)}/))) {
 		// unicode: \x{FFFF}
 		token.type = "escunicodex";
 		token.l += match[0].length;
-		if (match[1]) { token.code = parseInt(match[1], 16); }
-		else { token.err = "nocode"; }
-	} else if (match = sub.match(/^x([\da-f]{0,2})/i)) {
+		token.code = parseInt(match[1], 16);
+	} else if (match = sub.match(/^x([\da-fA-F]{0,2})/)) {
 		// hex ascii: \xFF
 		token.type = "eschexadecimal";
 		token.l += match[0].length;
