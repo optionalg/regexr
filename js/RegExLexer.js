@@ -463,19 +463,28 @@ p.parseEsc = function (str, token, charset, closeIndex) {
 		return token;
 	}
 
-	if (match = sub.match(/^u[\da-fA-F]{4}/)) {
+	if (this.pcreMode && c === "Q") {
+		// escsequence: \Q...\E
+		token.type = "escsequence";
+		if ((i = sub.indexOf("\\E")) !== -1) { token.l += i+2; }
+		else { token.l += closeIndex-token.i-1; }
+		console.log(i);
+	} else if (!this.pcreMode && (match = sub.match(/^u([\da-f]{4})/i))) {
 		// unicode: \uFFFF
-		sub = match[0].substr(1);
 		token.type = "escunicode";
-		token.l += 5;
-		token.code = parseInt(sub, 16);
-	} else if (match = sub.match(/^x[\da-fA-F]{2}/)) {
+		token.l += match[0].length;
+		token.code = parseInt(match[1], 16);
+	} else if (this.pcreMode && (match = sub.match(/^x\{([\da-f]*)}/i))) {
+		// unicode: \x{FFFF}
+		token.type = "escunicodex";
+		token.l += match[0].length;
+		if (match[1]) { token.code = parseInt(match[1], 16); }
+		else { token.err = "nocode"; }
+	} else if (match = sub.match(/^x([\da-f]{0,2})/i)) {
 		// hex ascii: \xFF
-		// \x{} not supported in JS regexp
-		sub = match[0].substr(1);
 		token.type = "eschexadecimal";
-		token.l += 3;
-		token.code = parseInt(sub, 16);
+		token.l += match[0].length;
+		token.code = parseInt(match[1]||0, 16);
 	} else if (!jsMode && (match = sub.match(/^c[a-zA-Z]/))) {
 		// control char: \cA \cz
 		// not supported in JS strings
