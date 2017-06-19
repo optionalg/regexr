@@ -25,8 +25,20 @@ s.match = function (regex, str, type, callback) {
 };
 
 s._processPCRE = function(regex, str, callback) {
-	var json = JSON.stringify({pattern: regex.toString(), str: str});
-	
+	var pattern = regex.pattern;
+	var flags = regex.flags;
+	var global = false;
+
+	// wdg: For now just remove the g flag. Possibly change to pass a paramter.
+	var gIndex = flags.indexOf("g");
+
+	if (gIndex !== -1) {
+		global = true;
+		flags = flags.substr(0, gIndex)+flags.substr(gIndex+1);
+	}
+
+	var json = JSON.stringify({pattern: pattern, flags: flags, global: global, str: str});
+
 	ServerModel.executeRegex(json).then(function(result) {
 		var error = null;
 		if (result == null) {

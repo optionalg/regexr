@@ -576,18 +576,18 @@ p.update = function () {
 };
 
 p.getRegEx = function(global, type) {
+	var regex, o = this.decomposeExpression(this.expressionCM.getValue());
+
+	if (global === true && o.flags.indexOf("g") === -1) { o.flags += "g"; }
+	else if (global === false) { o.flags = o.flags.replace("g",""); }
+
 	if (type == null || type == RegExJS.JS) {
-		var regex, o = this.decomposeExpression(this.expressionCM.getValue());
-	
-		if (global === true && o.flags.indexOf("g") === -1) { o.flags += "g"; }
-		else if (global === false) { o.flags = o.flags.replace("g",""); }
-		
 		try {
 			regex = new RegExp(o.pattern, o.flags);
 		} catch (e) {}
 		return regex;
 	} else if (type == RegExJS.PCRE) {
-		return this.expressionCM.getValue();
+		return o;
 	}
 }
 
