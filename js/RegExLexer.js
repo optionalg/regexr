@@ -22,10 +22,10 @@
  SOFTWARE.
  */
 
-var RegExLexer = function () {
-};
+var RegExLexer = function () { };
 var p = RegExLexer.prototype;
 
+// TODO: all these constants should move into a core profile:
 // \ ^ $ . | ? * + ( ) [ {
 RegExLexer.CHAR_TYPES = {
 	".": "dot",
@@ -93,6 +93,17 @@ RegExLexer.PCRE_ESC_CHAR_CODES = {
 	"a": 7,
 	"e": 27
 };
+
+RegExLexer.UNICODE_SCRIPTS = {
+	"Cherokee": true,
+	"Common": true
+};
+
+RegExLexer.UNICODE_CATEGORIES = {
+	"Ll": true,
+	"L": true
+};
+
 
 
 p.string = null;
@@ -463,7 +474,10 @@ p.parseEsc = function (str, token, charset, closeIndex) {
 		return token;
 	}
 
-	if (this.pcreMode && c === "Q") {
+	if (this.pcreMode && (c === "p" || c === "P")) {
+		// unicode: \p{Ll}
+		return this.parseUnicode(token, sub);
+	} else if (this.pcreMode && c === "Q") {
 		// escsequence: \Q...\E
 		token.type = "escsequence";
 		if ((i = sub.indexOf("\\E")) !== -1) { token.l += i+2; }
@@ -537,6 +551,22 @@ p.parseEsc = function (str, token, charset, closeIndex) {
 	return token;
 };
 
+p.parseUnicode = function(token, sub) {
+	var match = sub.match(/p\{(\w*)}/i), val = match && match[1];
+	if (!match && (match = sub.match(/p([LMZSNPC])/))) { val = match[1]; }
+	token.l += match ? match[0].length : 1;
+	token.type = "unicodecat";
+	if (RegExLexer.UNICODE_SCRIPTS[val]) {
+		token.type = "unicodescript";
+	} else if (!RegExLexer.UNICODE_CATEGORIES[val]) {
+		val = null;
+	}
+	if (!val) { token.err = "unmatchedunicode"; }
+	token.unicodeid = val;
+	token.type = (sub[0] === "P" ? "not" : "") + token.type; // TODO: expand further?
+	return token;
+};
+
 p.parseQuant = function (str, token) {
 	token.type = token.clss = "quant";
 	var i = token.i;
@@ -544,7 +574,7 @@ p.parseQuant = function (str, token) {
 	token.l += end - i;
 	var arr = str.substring(i + 1, end).split(",");
 	token.min = parseInt(arr[0]);
-	token.max = (arr[1] === undefined) ? token.min : (arr[1] == "") ? -1 : parseInt(arr[1]); // TODO: === ?
+	token.max = (arr[1] === undefined) ? token.min : (arr[1] === "") ? -1 : parseInt(arr[1]); // TODO: === ?
 	if (token.max !== -1 && token.min > token.max) {
 		token.err = "quantrev";
 	}
