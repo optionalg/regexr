@@ -136,7 +136,7 @@ Utils.fillTags = function (str, data, functs) {
 		var arr = val.split(".");
 		for (var i = 0; i < arr.length; i++) {
 			var prop = arr[i];
-			if (prop) {
+			if (prop && o) {
 				o = o[prop];
 			}
 		}
