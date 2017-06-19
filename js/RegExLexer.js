@@ -239,7 +239,7 @@ p.matchRefs = function(refs, indexes, names) {
 		if (group) {
 			token.group = group;
 			token.related = [group];
-			token.forward = (token.i < group.i);
+			token.dir = (token.i < group.i) ? 1 : (!group.close || token.i < group.close.i) ? 0 : -1;
 		} else {
 			if (this.refToOctal(token)) { continue; }
 			this.errors.push(token.err = "unmatchedref");
