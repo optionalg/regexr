@@ -318,6 +318,7 @@ p.parseFlag = function (str, token) {
 			this.token.related = [token];
 		}
 	} else {
+		// TODO: probably use flag names instead of this?
 		token.type = "flag_" + c;
 	}
 	token.clear = true;
@@ -370,29 +371,36 @@ p.parseParen = function (str, token) {
 	var sub = str.substr(token.i+2), match, s=sub[0];
 
 	if (s === ":") {
+		// (?:foo)
 		token.type = "noncapgroup";
 		token.close = null;
 		token.l = 3;
 	} else if (s === ">") {
+		// (?>foo)
 		token.type = "atomic";
 		token.close = null;
 		token.l = 3;
 	} else if (s === "#" && (match = sub.match(/[^)]*\)/))) {
+		// (?#foo)
 		token.clss = token.type = "comment";
 		token.l = 2+match[0].length;
 	} else if (/^(R|0)\)/.test(sub)) {
+		// (?R) (?0)
 		token.clss = "ref";
 		token.type = "recursion";
 		token.l = 4;
 	} else if (match = sub.match(/^P=(\w+)\)/i)) {
+		// (?P=name)
 		token.type = "namedref";
 		this.getRef(token, match[1]);
 		token.l = match[0].length+2;
 	} else if (/^\(DEFINE\)/.test(sub)) {
+		// (?(DEFINE)foo)
 		token.type = "define";
 		token.close = null;
 		token.l = 10;
 	} else if (match = sub.match(/^<?[=!]/)) {
+		// (?=foo) (?<!foo)
 		var isCond = token.prev.type === "conditional";
 		token.clss = isCond ? "special" : "lookaround";
 		token.close = null;
@@ -401,34 +409,39 @@ p.parseParen = function (str, token) {
 		token.negative = s[+token.behind] === "!";
 		token.type = isCond ? "condition" : (token.negative ? "neg" : "pos") + "look" + (token.behind ? "behind" : "ahead");
 		if (isCond) {
-			// TODO: this doesn't highlight correctly yet:
 			token.proxy = token.prev;
 			token.prev.related = [token];
 			token.prev.condition = token;
 		}
 		token.l = s.length + 2;
 	} else if ((match = sub.match(/^'(\w+)'/)) || (match = sub.match(/^P?<(\w+)>/))) {
+		// (?'name'foo) (?P<name>foo) (?<name>foo)
 		token.type = "namedgroup";
 		token.close = null;
 		token.name = match[1];
 		token.capture = true;
 		token.l = match[0].length + 2;
 	} else if ((match = sub.match(/^([-+]?\d\d?)\)/)) || (match = sub.match(/^(?:&|P>)(\w+)\)/))) {
-		token.type = "subroutine";
+		// (?1) (?-1) (?&name) (?P>name)
+		token.type = (isNaN(match[1]) ? "named" : "num") + "subroutine"; // TODO: move to getRef?
 		this.getRef(token, match[1]);
 		token.l = match[0].length + 2;
-	} else if (false && (match = sub.match(/^\(([-+]?\d\d?)\)/)) || (match = sub.match(/^\((\w+)\)/))) {
+	} else if ((match = sub.match(/^\(([-+]?\d\d?)\)/)) || (match = sub.match(/^\((\w+)\)/))) {
+		// (?(1)a|b) (?(-1)a|b) (?(name)a|b)
+		// TODO: set related (needs to be handled like a reference), handle alternation as an else
 		token.clss = "special";
 		token.type = "conditionalgroup";
 		token.close = null;
 		token.name = match[1];
 		token.l = match[0].length + 2;
 	} else if (/^\(\?<?[=!]/.test(sub)) {
+		// (?(?=if)then|else)
 		token.clss = "special";
 		token.type = "conditional";
 		token.close = null;
 		token.l = 2;
 	} else if (match = sub.match(/^[-ixsmJU]+\)/)) {
+		// (?i-x)
 		// supported modes in PCRE: i-caseinsens, x-freespacing, s-dotall, m-multiline, J-samename, U-switchlazy
 		// TODO: in the future, we could potentially support x, s, U  modes correctly in the lexer
 		token.clss = "special";
@@ -515,6 +528,7 @@ p.parseBackSlash = function (str, token, charset, closeIndex) {
 		token.l += sub.length;
 		token.code = parseInt(sub, 8);
 	} else if (!jsMode && c == "c") {
+		// TODO: PCRE treats it as an error. Use "esccharbad"?
 		// control char without a code - strangely, this is decomposed into literals equivalent to "\\c"
 		return this.parseChar(str, token, charset); // this builds the "/" token
 	} else {
@@ -531,6 +545,7 @@ p.parseBackSlash = function (str, token, charset, closeIndex) {
 		}
 
 		if (token.type) {
+			// TODO: update this.
 			token.clss = (c.toLowerCase() === "b") ? "anchor" : "charclass";
 			return token;
 		}
@@ -550,12 +565,13 @@ p.parseBackSlash = function (str, token, charset, closeIndex) {
 p.parseRef = function(token, sub) {
 	// namedref: \k<name> \k'name' \k{name} \g{name}
 	// namedsubroutine: \g<name> \g'name'
-	// numref: \g1 \g+2 \g{2}
+	// numref: \g1 \g+2 \g{2} // TODO: separate into rel and abs?
 	// numsubroutine: \g<-1> \g'1'
+	// recursion: \g<0> \g'0' // TODO: add
 	var c=sub[0], s="";
 	if (match = sub.match(/^[gk](?:'\w*'|<\w*>|{\w*})/)) {
 		s = match[0].substr(2, match[0].length - 3);
-		if (c === "k" && !isNaN(s)) { s = ""; } // TODO: specific error?
+		if (c === "k" && !isNaN(s)) { s = ""; } // TODO: specific error for numeric \k?
 	} else if (match = sub.match(/^g(?:({[-+]?\d+}|<[-+]?\d+>|'[-+]?\d+')|([-+]?\d+))/)) {
 		s = match[2] !== undefined ? match[2] : match[1].substr(1, match[1].length-2);
 	}
