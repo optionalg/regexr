@@ -213,7 +213,7 @@ p.parse = function (str) {
 		if (token.group === true) {
 			refs.push(token);
 		}
-		if (curGroup && curGroup.type === "conditional" && token.type === "alt") {
+		if (curGroup && (curGroup.type === "conditional" || curGroup.type === "conditionalgroup") && token.type === "alt") {
 			if (!curGroup.alt) { curGroup.alt = token; }
 			else { token.err = "extraelse"; }
 			token.related = [curGroup];
@@ -586,7 +586,7 @@ p.parseUnicode = function(token, sub) {
 	// unicodecat: \p{Ll} \pL
 	// not: \P{Ll} \p{^Lu}
 	var match = sub.match(/p\{\^?(\w*)}/i), val = match && match[1], not = sub[0] === "P";
-	if (!match && (match = sub.match(/p([LMZSNPC])/))) { val = match[1]; }
+	if (!match && (match = sub.match(/[pP]([LMZSNPC])/))) { val = match[1]; }
 	else { not = not !== (sub[2] === "^"); }
 	token.l += match ? match[0].length : 1;
 	token.type = "unicodecat";
