@@ -46,7 +46,7 @@ RegExLexer.ESC_CHARS_SPECIAL = {
 	"S": "notwhitespace",
 	"b": "wordboundary",
 	"B": "notwordboundary"
-	// u-uni, c-ctrl, x-hex, oct handled in parseEsc
+	// u-uni, c-ctrl, x-hex, oct handled in parseBackSlash
 };
 
 RegExLexer.PCRE_ESC_CHARS_SPECIAL = {
@@ -138,7 +138,7 @@ p.parse = function (str) {
 			this.parseFlag(str, token);
 		} else if (c === "(" && !charset) {
 			this.parseParen(str, token);
-			if (token.close === true) {
+			if (token.close === null) {
 				token.depth = groups.length;
 				groups.push(token);
 			}
@@ -178,7 +178,7 @@ p.parse = function (str) {
 		} else if (c === "{" && !charset && str.substr(i).search(/^{\d+,?\d*}/) !== -1) {
 			this.parseQuant(str, token);
 		} else if (c === "\\") {
-			this.parseEsc(str, token, charset, closeIndex);
+			this.parseBackSlash(str, token, charset, closeIndex);
 		} else if (c === "?" && !charset) {
 			if (!prev || prev.clss !== "quant") {
 				token.type = charTypes[c];
@@ -261,8 +261,9 @@ p.getRef = function(token, str) {
 
 p.matchRefs = function(refs, indexes, names) {
 	while (refs.length) {
-		var token = refs.pop(), name=token.name, group=names[name];
-		if (!group) {
+		var token = refs.pop(), name=token.name, group = names[name];
+
+		if (!group && !isNaN(name)) {
 			var sign = name[0], index = parseInt(name) + ((sign === "+" || sign === "-") ? token.relIndex : 0);
 			if (sign === "-") { index++; }
 			group = indexes[index-1];
@@ -361,7 +362,7 @@ p.parseParen = function (str, token) {
 
 	token.clss = token.type = "group";
 	if (str[token.i+1] !== "?") {
-		token.close = true; // indicates that it needs a close token.
+		token.close = null; // indicates that it needs a close token.
 		token.capture = true;
 		return token;
 	}
@@ -370,11 +371,11 @@ p.parseParen = function (str, token) {
 
 	if (s === ":") {
 		token.type = "noncapgroup";
-		token.close = true;
+		token.close = null;
 		token.l = 3;
 	} else if (s === ">") {
 		token.type = "atomic";
-		token.close = true;
+		token.close = null;
 		token.l = 3;
 	} else if (s === "#" && (match = sub.match(/[^)]*\)/))) {
 		token.clss = token.type = "comment";
@@ -389,12 +390,12 @@ p.parseParen = function (str, token) {
 		token.l = match[0].length+2;
 	} else if (/^\(DEFINE\)/.test(sub)) {
 		token.type = "define";
-		token.close = true;
+		token.close = null;
 		token.l = 10;
 	} else if (match = sub.match(/^<?[=!]/)) {
 		var isCond = token.prev.type === "conditional";
 		token.clss = isCond ? "special" : "lookaround";
-		token.close = true;
+		token.close = null;
 		s = match[0];
 		token.behind = s[0] === "<";
 		token.negative = s[+token.behind] === "!";
@@ -408,7 +409,7 @@ p.parseParen = function (str, token) {
 		token.l = s.length + 2;
 	} else if ((match = sub.match(/^'(\w+)'/)) || (match = sub.match(/^P?<(\w+)>/))) {
 		token.type = "namedgroup";
-		token.close = true;
+		token.close = null;
 		token.name = match[1];
 		token.capture = true;
 		token.l = match[0].length + 2;
@@ -419,13 +420,13 @@ p.parseParen = function (str, token) {
 	} else if (false && (match = sub.match(/^\(([-+]?\d\d?)\)/)) || (match = sub.match(/^\((\w+)\)/))) {
 		token.clss = "special";
 		token.type = "conditionalgroup";
-		token.close = true;
+		token.close = null;
 		token.name = match[1];
 		token.l = match[0].length + 2;
 	} else if (/^\(\?<?[=!]/.test(sub)) {
 		token.clss = "special";
 		token.type = "conditional";
-		token.close = true;
+		token.close = null;
 		token.l = 2;
 	} else if (match = sub.match(/^[-ixsmJU]+\)/)) {
 		// supported modes in PCRE: i-caseinsens, x-freespacing, s-dotall, m-multiline, J-samename, U-switchlazy
@@ -435,7 +436,8 @@ p.parseParen = function (str, token) {
 		token.l = match[0].length + 2;
 	} else {
 		// error, found a (? without matching anything. Treat it as a normal group and let it error out.
-		token.close = token.capture = true;
+		token.close = null;
+		token.capture = true;
 	}
 
 	// TODO: should this just be global?
@@ -444,18 +446,19 @@ p.parseParen = function (str, token) {
 	return token;
 };
 
-p.parseEsc = function (str, token, charset, closeIndex) {
+p.parseBackSlash = function (str, token, charset, closeIndex) {
 	// jsMode tries to read escape chars as a JS string which is less permissive than JS RegExp, and doesn't support \c or backreferences, used for subst
 
 	// Note: \8 & \9 are treated differently: IE & Chrome match "8", Safari & FF match "\8", we support the former case since Chrome & IE are dominant
 	// Note: Chrome does weird things with \x & \u depending on a number of factors, we ignore this.
-	var i = token.i, jsMode = token.js, match, o;
+	var i = token.i, jsMode = token.js, match;
 	var sub = str.substr(i + 1), c = sub[0];
 	if (i + 1 === (closeIndex || str.length)) {
 		token.err = "esccharopen";
 		return;
 	}
 
+	// TODO: update jsMode
 	if (!jsMode && !charset && (match = sub.match(/^\d\d?/))) {
 		// basic reference: \1 \22
 		// we will write this as a reference for now, and re-write it later if it doesn't match a group
@@ -464,15 +467,8 @@ p.parseEsc = function (str, token, charset, closeIndex) {
 		token.l += match[0].length;
 		return token;
 	}
-	if (!jsMode && this.pcreMode && !charset && (match = sub.match(/^[gk](?:'(?:\w*|[-+]?\d\d?)'|<(?:\w*|[-+]?\d\d?)>|{(?:\w*|[-+]?\d\d?)})/))) {
-		// named reference: \k<name> \k'name' \k{name}
-		// subroutine: \g{name} \g<-1> \g'1' (and all combinations)
-		var name = match[0].substr(2, match[0].length-3);
-		token.type = c === "g" ? "subroutine" : "namedref";
-		if (c === "k" && !isNaN(name)) { name = ""; } // TODO: error?
-		this.getRef(token, name);
-		token.l += match[0].length;
-		return token;
+	if (!jsMode && this.pcreMode && !charset && (c === "g" || c === "k")) {
+		return this.parseRef(token, sub);
 	}
 
 	if (this.pcreMode && (c === "p" || c === "P")) {
@@ -551,7 +547,28 @@ p.parseEsc = function (str, token, charset, closeIndex) {
 	return token;
 };
 
+p.parseRef = function(token, sub) {
+	// named reference: \k<name> \k'name' \k{name} \g{name}
+	// named subroutines: \g<name> \g'name'
+	// num references: \g1 \g+2 \g{2}
+	// num subroutines: \g<-1> \g'1'
+	var c=sub[0], s="";
+	if (match = sub.match(/^[gk](?:'\w*'|<\w*>|{\w*})/)) {
+		s = match[0].substr(2, match[0].length - 3);
+		if (c === "k" && !isNaN(s)) { s = ""; } // TODO: specific error?
+	} else if (match = sub.match(/^g(?:({[-+]?\d+}|<[-+]?\d+>|'[-+]?\d+')|([-+]?\d+))/)) {
+		s = match[2] !== undefined ? match[2] : match[1].substr(1, match[1].length-2);
+	}
+	var isRef = c === "k" || !(sub[1] === "'" || sub[1] === "<");
+	token.type = (isNaN(s) ? "named" : "num") + (isRef ? "ref" : "subroutine");
+	this.getRef(token, s);
+	token.l += match ? match[0].length : 1;
+}
+
 p.parseUnicode = function(token, sub) {
+	// unicodescript: \p{Cherokee}
+	// unicodecat: \p{Ll} \pL
+	// negated: \P{Ll} \p{^Lu}
 	var match = sub.match(/p\{(\w*)}/i), val = match && match[1];
 	if (!match && (match = sub.match(/p([LMZSNPC])/))) { val = match[1]; }
 	token.l += match ? match[0].length : 1;
@@ -568,6 +585,7 @@ p.parseUnicode = function(token, sub) {
 };
 
 p.parseQuant = function (str, token) {
+	// quantifier: {0,3} {3} {1,}
 	token.type = token.clss = "quant";
 	var i = token.i;
 	var end = str.indexOf("}", i + 1);
