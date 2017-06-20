@@ -472,7 +472,7 @@ p.parseBackSlash = function (str, token, charset, closeIndex) {
 	}
 
 	if (this.pcreMode && (c === "p" || c === "P")) {
-		// unicode: \p{Ll}
+		// unicode: \p{Ll} \pL
 		return this.parseUnicode(token, sub);
 	} else if (this.pcreMode && c === "Q") {
 		// escsequence: \Q...\E
@@ -548,10 +548,10 @@ p.parseBackSlash = function (str, token, charset, closeIndex) {
 };
 
 p.parseRef = function(token, sub) {
-	// named reference: \k<name> \k'name' \k{name} \g{name}
-	// named subroutines: \g<name> \g'name'
-	// num references: \g1 \g+2 \g{2}
-	// num subroutines: \g<-1> \g'1'
+	// namedref: \k<name> \k'name' \k{name} \g{name}
+	// namedsubroutine: \g<name> \g'name'
+	// numref: \g1 \g+2 \g{2}
+	// numsubroutine: \g<-1> \g'1'
 	var c=sub[0], s="";
 	if (match = sub.match(/^[gk](?:'\w*'|<\w*>|{\w*})/)) {
 		s = match[0].substr(2, match[0].length - 3);
@@ -568,9 +568,10 @@ p.parseRef = function(token, sub) {
 p.parseUnicode = function(token, sub) {
 	// unicodescript: \p{Cherokee}
 	// unicodecat: \p{Ll} \pL
-	// negated: \P{Ll} \p{^Lu}
-	var match = sub.match(/p\{(\w*)}/i), val = match && match[1];
+	// not: \P{Ll} \p{^Lu}
+	var match = sub.match(/p\{\^?(\w*)}/i), val = match && match[1], not = sub[0] === "P";
 	if (!match && (match = sub.match(/p([LMZSNPC])/))) { val = match[1]; }
+	else { not = not !== (sub[2] === "^"); }
 	token.l += match ? match[0].length : 1;
 	token.type = "unicodecat";
 	if (RegExLexer.UNICODE_SCRIPTS[val]) {
@@ -578,9 +579,9 @@ p.parseUnicode = function(token, sub) {
 	} else if (!RegExLexer.UNICODE_CATEGORIES[val]) {
 		val = null;
 	}
+	if (not) { token.type = "not"+token.type; }
 	if (!val) { token.err = "unmatchedunicode"; }
 	token.unicodeid = val;
-	token.type = (sub[0] === "P" ? "not" : "") + token.type; // TODO: expand further?
 	return token;
 };
 
@@ -600,8 +601,9 @@ p.parseQuant = function (str, token) {
 };
 
 p.validateRange = function (str, token) {
+	// char range: [a-z] [\11-\n]
 	var prev = token.prev, next = token.next;
-	if (prev.code === undefined || next.code === undefined) { // TODO: === ?
+	if (prev.code === undefined || next.code === undefined) {
 		// not a range, rewrite as a char:
 		this.parseChar(str, token);
 	} else {
