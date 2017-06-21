@@ -280,13 +280,13 @@ Utils.parsePattern = function (ex) {
 
 Utils.addSlashes = function(str){
 	return (str+'').replace(/\\/g, '\\\\').
-        replace(/\u0008/g, '\\b').
-        replace(/\t/g, '\\t').
-        replace(/\n/g, '\\n').
-        replace(/\f/g, '\\f').
-        replace(/\r/g, '\\r').
-        replace(/'/g, '\\\'').
-        replace(/"/g, '\\"');
+		replace(/\u0008/g, '\\b').
+		replace(/\t/g, '\\t').
+		replace(/\n/g, '\\n').
+		replace(/\f/g, '\\f').
+		replace(/\r/g, '\\r').
+		replace(/'/g, '\\\'').
+		replace(/"/g, '\\"');
 }
 
 Utils.createID = function (id) {
@@ -318,7 +318,7 @@ Utils.getCtrlKey = function () {
 };
 
 /*
- Remove all children from a element.
+ Remove all children from an element.
  When using .innerHTML = ""; IE fails when adding new dom elements via appendChild();
  */
 Utils.empty = function (el) {
@@ -359,6 +359,16 @@ Utils.getHashCode = function(s) {
 		hash = ((hash << 5) - hash) + s.charCodeAt(i) | 0;
 	}
 	return hash;
+};
+
+Utils.mergeProfiles = function(p1, p2) {
+	// merges p1 into p2, essentially just a simple deep copy without array support.
+	for (var n in p1) {
+		if (p2[n] === false) { continue; }
+		if (typeof p1[n] === "object") { p2[n] = Utils.mergeProfiles(p1[n], p2[n] || {}); }
+		else if (p2[n] === undefined) { p2[n] = p1[n]; }
+	}
+	return p2;
 };
 
 module.exports = Utils;

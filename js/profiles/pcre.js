@@ -22,16 +22,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
  */
 
-(function() {
 /*
 The PCRE profile is almost a straight copy of the core profile.
  */
-
 var y=true, n=false;
 
-profiles.pcre = {
+var pcre = {
 	tokens: {
 		"escunicodeu": n, // \u{00A9} // TODO: not in PCRE. In JS behind unicode flag. Needs lexer support.
 	}
 };
-})();
+
+module.exports = pcre;

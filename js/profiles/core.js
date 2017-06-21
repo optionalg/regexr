@@ -22,16 +22,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
  */
 
-(function() {
 /*
 The core profile essentially defines every feature we support, and is then pared down by other profiles.
 
-It also acts in part as pseudo documentation.
+It also acts in part as pseudo documentation for all of the "type" values.
  */
-
 var y=true, n=false;
 
-profiles.core = {
+var core = {
 	flags: {
 		"g": "global", // note that this is not a real flag in some flavors, but a different method call
 		"i": "caseinsensitive",
@@ -135,7 +133,6 @@ profiles.core = {
 		"esccontrolchar": y, // \cA
 		"escchar": y, // escCharCodes
 		// not in supported flavors:	"escoctalo": y, // \o{377}, PCRE 8.34+
-
 		
 		// group:
 		"group": y, // (foo)
@@ -145,12 +142,11 @@ profiles.core = {
 		"atomic": y, // (?>foo|bar)
 		"define": y, // (?(DEFINE)foo)
 		
-		
 		// lookaround:
-		"poslookbehind" : y,
-		"neglookbehind": y,
-		"poslookahead": y,
-		"neglookahead": y,
+		"poslookbehind" : y, // (?<=foo)
+		"neglookbehind": y, // (?<!foo)
+		"poslookahead": y, // (?=foo)
+		"neglookahead": y, // (?!foo)
 		
 		// ref:
 		"reference": y, // simple \1
@@ -168,7 +164,7 @@ profiles.core = {
 		
 		// special:
 		"conditional": y, // (?(?=if)then|else)
-		"conditionalif": y, // (?=if)
+		"conditionalif": y, // (?=if) any lookaround
 		"conditionalelse": y, // |
 		"conditionalgroup": y, // (?(1)a|b) (?(-1)a|b) (?(name)a|b)
 		"mode": y, // (?i-x) see modes above
@@ -195,7 +191,8 @@ profiles.core = {
 	}
 	*/
 };
-})();
+
+module.exports = core;
 
 
 /*

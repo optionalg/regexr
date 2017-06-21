@@ -22,17 +22,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
  */
 
-(function() {
 /*
 The javascript profile disables a large number of features.
  */
 
-function testFlag(flag) { try { return new RegExp(".",flag).test("a") * 1; } catch (e) { return 0; } }
+var y=true, n=false;
+function testFlag(flag) { try { new RegExp(".",flag); } catch (e) { return n; } }
 var unicodeFlag = testFlag("u");
 var stickyFlag = testFlag("y");
-var y=true, n=false;
 
-profiles.javascript = {
+var javascript = {
 	flags: {
 		"s": n,
 		"u": unicodeFlag,
@@ -81,6 +80,10 @@ profiles.javascript = {
 		"atomic": n, // (?>foo|bar)
 		"define": n, // (?(DEFINE)foo)
 
+		// lookaround:
+		"poslookbehind" : n, // (?<=foo)
+		"neglookbehind": n, // (?<!foo)
+
 		// ref:
 		"namedref": n, // \k<name> \k'name' \k{name} (?P=name)  \g{name}
 		"numref": n, // \g{-1} \g{+1} \g{1} \g1 \g-1
@@ -94,7 +97,7 @@ profiles.javascript = {
 
 		// special:
 		"conditional": n, // (?(?=if)then|else)
-		"conditionalif": n, // (?=if)
+		"conditionalif": n, // (?=if) any lookaround
 		"conditionalelse": n, // |
 		"conditionalgroup": n, // (?(1)a|b) (?(-1)a|b) (?(name)a|b)
 		"mode": n, // (?i-x) see modes above
@@ -107,4 +110,5 @@ profiles.javascript = {
 		ctrlcodeerr: n // does \c error, or decompose?
 	}
 };
-})();
+
+module.exports = javascript;
