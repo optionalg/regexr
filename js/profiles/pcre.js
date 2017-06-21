@@ -29,6 +29,7 @@ var y=true, n=false;
 
 var pcre = {
 	tokens: {
+		"posixcollseq": n, // [[.foo.]] currently requires posixcharclass to be enabled
 		"escunicode": n, // \uFFFF
 		"escunicodeu": n // \u{00A9}
 	}

@@ -75,13 +75,8 @@ p.parse = function (str) {
 			} else {
 				token.err = "groupclose";
 			}
-		} else if (c === "[" && !charset) {
-			token.type = token.clss = "set";
-			charset = token;
-			if (str[i + 1] === "^") {
-				token.l++;
-				token.type += "not";
-			}
+		} else if (c === "[") {
+			charset = this.parseSquareBracket(str, token, charset);
 		} else if (c === "]" && charset) {
 			token.type = "setclose";
 			token.open = charset;
@@ -259,6 +254,34 @@ p.parseChar = function (str, token, charset) {
 	return token;
 };
 
+p.parseSquareBracket = function(str, token, charset) {
+	var match;
+	if (!charset) {
+		// charset: [a-z] [aeiou]
+		// notcharset: [^a-z]
+		token.type = token.clss = "set";
+		if (str[token.i + 1] === "^") {
+			token.l++;
+			token.type += "not";
+		}
+		charset = token;
+	} else if (this.profile.tokens.posixcharclass && (match = str.substr(token.i).match(/^\[(:)(.*?)\1]/))) {
+		// posixcharclass: [:alpha:]
+		// posixcollseq: [.ch.]
+		// currently neither flavor supports posixcollseq, but PCRE does flag as an error:
+		token.l = match[0].length;
+		token.value = match[2];
+		if (match[1] === ":") {
+			token.type = "posixcharclass";
+			if (!this.profile.posixCharClasses[match[2]]) { token.err = "posixcharclassbad"; }
+		} else {
+			token.type = "posixcollseq";
+			token.err = "notsupported";
+		}
+	}
+	return charset;
+};
+
 p.parseParen = function (str, token) {
 	// TODO: will need to "post-link" references, conditionals, etc since forward references are allowed
 	/*
@@ -372,7 +395,7 @@ p.parseParen = function (str, token) {
 		token.capture = true;
 	}
 
-	token.supported = !!this.profile.tokens[token.type];
+	if (!this.profile.tokens[token.type]) { token.err = "notsupported"; }
 
 	return token;
 };

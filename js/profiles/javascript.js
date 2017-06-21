@@ -62,6 +62,8 @@ var javascript = {
 
 	unicodeCategories: n,
 
+	posixCharClasses: n,
+
 	modes: n,
 
 	tokens: {
@@ -71,6 +73,8 @@ var javascript = {
 		"notunicodecat": n, // \P{Ll} \p{^Ll} \PL
 		"unicodescript": n, // \p{Cherokee} \P{^Cherokee}
 		"notunicodescript": n, // \P{Cherokee} \p{^Cherokee}
+		"posixcharclass": n, // [[:alpha:]]
+		"posixcollseq": n, // [[.foo.]] currently requires posixcharclass to be enabled
 
 		// esc:
 		// also in escCharCodes and escCharSpecials

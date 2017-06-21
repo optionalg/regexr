@@ -115,7 +115,11 @@ var core = {
 	unicodeCategories: {
 		"Ll": y,
 		"L": y
-		// alias syntax: "Lowercase_Letter": "Ll"
+		// alias syntax: "Lowercase_Letter": "Ll"?
+	},
+	
+	posixCharClasses: {
+		"alpha": y
 	},
 	
 	modes: {
@@ -143,6 +147,8 @@ var core = {
 		"notunicodecat": y, // \P{Ll} \p{^Ll} \PL
 		"unicodescript": y, // \p{Cherokee} \P{^Cherokee}
 		"notunicodescript": y, // \P{Cherokee} \p{^Cherokee}
+		"posixcharclass": y, // [[:alpha:]]
+		"posixcollseq": y, // [[.foo.]] currently requires posixcharclass to be enabled
 		// not in supported flavors:	"unicodeblock": y, // \p{InThai} \p{IsThai} and NOT \P
 		// not in supported flavors:	"subtract": y, // [base-[subtract]]
 		// not in supported flavors:	"intersect": y, // [base&&[intersect]]
@@ -230,14 +236,17 @@ esc
 anchor
 charclass
 group
-esccharbad
 
 
 errors:
 groupopen
+esccharopen
+esccharbad
 setopen
 quanttarg
+fwdslash
+notsupported
 extraelse
 unmatchedref
-fwdslash
+posixcharclassbad
  */
