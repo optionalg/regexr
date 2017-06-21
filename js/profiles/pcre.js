@@ -32,6 +32,7 @@ var pcre = {
 		"posixcollseq": n, // [[.foo.]] currently requires posixcharclass to be enabled
 		"escunicode": n, // \uFFFF
 		"escunicodeu": n // \u{00A9}
+		// octalo PCRE 8.34+
 	}
 };
 

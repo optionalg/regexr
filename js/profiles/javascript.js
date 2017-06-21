@@ -78,9 +78,10 @@ var javascript = {
 
 		// esc:
 		// also in escCharCodes and escCharSpecials
-		"escunicodeu": y, // \u{00A9} only if the unicode flag is set
+		"escunicodeu": y, // \u{00A9} // TODO: only if the unicode flag is set
 		"escunicodex": n, // \x{00A9}
 		"escsequence": n, // \Q...\E
+		"escoctalo": n, // \o{377}
 
 		// group:
 		"namedgroup": n, // (?P<name>foo) (?<name>foo) (?'name'foo)

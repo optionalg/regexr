@@ -31,6 +31,7 @@ p.errors = null;
 p.captureGroups = null;
 p.namedGroups = null;
 p.profile = null;
+p.flags = null;
 
 p.parse = function (str) {
 	if (!this.profile) { return null; }
@@ -39,6 +40,7 @@ p.parse = function (str) {
 	}
 
 	this.token = null;
+	this.flags = {};
 	this.string = str;
 	this.errors = [];
 	var capgroups = this.captureGroups = [];
@@ -257,8 +259,8 @@ p.parseChar = function (str, token, charset) {
 p.parseSquareBracket = function(str, token, charset) {
 	var match;
 	if (!charset) {
-		// charset: [a-z] [aeiou]
-		// notcharset: [^a-z]
+		// set [a-z] [aeiou]
+		// setnot [^a-z]
 		token.type = token.clss = "set";
 		if (str[token.i + 1] === "^") {
 			token.l++;
@@ -283,10 +285,9 @@ p.parseSquareBracket = function(str, token, charset) {
 };
 
 p.parseParen = function (str, token) {
-	// TODO: will need to "post-link" references, conditionals, etc since forward references are allowed
 	/*
 	core:
-.		capgroup
+.		capgroup:
 .		lookahead: ?= ?!
 .		noncap: ?:
 	PCRE:
@@ -406,7 +407,7 @@ p.parseBackSlash = function (str, token, charset, closeIndex) {
 	// Note: \8 & \9 are treated differently: IE & Chrome match "8", Safari & FF match "\8", we support the former case since Chrome & IE are dominant
 	// Note: Chrome does weird things with \x & \u depending on a number of factors, we ignore this.
 	var i = token.i, jsMode = token.js, match, profile = this.profile;
-	var sub = str.substr(i + 1), c = sub[0];
+	var sub = str.substr(i + 1), c = sub[0], val;
 	if (i + 1 === (closeIndex || str.length)) {
 		token.err = "esccharopen";
 		return;
@@ -414,8 +415,8 @@ p.parseBackSlash = function (str, token, charset, closeIndex) {
 
 	// TODO: update jsMode
 	if (!jsMode && !charset && (match = sub.match(/^\d\d?/))) {
-		// basic reference: \1 \22
-		// we will write this as a reference for now, and re-write it later if it doesn't match a group
+		// \1 \22
+		// write this as a reference for now, and re-write it later if it doesn't match a group
 		token.type = "reference";
 		this.getRef(token, match[0]);
 		token.l += match[0].length;
@@ -438,11 +439,14 @@ p.parseBackSlash = function (str, token, charset, closeIndex) {
 		token.type = "escunicode";
 		token.l += match[0].length;
 		token.code = parseInt(match[1], 16);
-	} else if (profile.tokens.escunicodex && (match = sub.match(/^x\{([\da-fA-F]+)}/))) {
+	} else if (profile.tokens.escunicodex && (match = sub.match(/^x\{(.*?)}/))) {
 		// unicode: \x{FFFF}
 		token.type = "escunicodex";
 		token.l += match[0].length;
-		token.code = parseInt(match[1], 16);
+		val = parseInt(match[1], 16);
+		// TODO: PCRE currently only likes 2 digits (<256). In theory it should allow 4?
+		if (isNaN(val) || val > 255 || /[^\da-f]/i.test(match[1])) { token.err = "esccharbad"; }
+		else { token.code = val; }
 	} else if (match = sub.match(/^x([\da-fA-F]{0,2})/)) {
 		// hex ascii: \xFF
 		token.type = "eschexadecimal";
@@ -464,13 +468,20 @@ p.parseBackSlash = function (str, token, charset, closeIndex) {
 		}
 	} else if (match = sub.match(/^[0-7]{1,3}/)) {
 		// octal ascii: \011
+		token.type = "escoctal";
 		sub = match[0];
 		if (parseInt(sub, 8) > 255) {
 			sub = sub.substr(0, 2);
 		}
-		token.type = "escoctal";
 		token.l += sub.length;
 		token.code = parseInt(sub, 8);
+	} else if (!jsMode && profile.tokens.escoctalo && (match = sub.match(/^o\{(.*?)}/i))) {
+		// \o{377}
+		token.type = "escoctalo";
+		token.l += match[0].length;
+		val = parseInt(match[1], 8);
+		if (isNaN(val) || val > 255 || /[^0-7]/.test(match[1])) { token.err = "esccharbad"; }
+		else { token.code = val; }
 	} else {
 		// single char
 		token.l++;

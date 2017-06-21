@@ -163,7 +163,7 @@ var core = {
 		"eschexadecimal": y, // \xFF
 		"esccontrolchar": y, // \cA
 		"escchar": y, // escCharCodes
-		// not in supported flavors:	"escoctalo": y, // \o{377}, PCRE 8.34+
+		"escoctalo": y, // \o{377}
 		
 		// group:
 		"group": y, // (foo)
