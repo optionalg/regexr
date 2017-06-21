@@ -63,7 +63,7 @@ s._processPCRE = function(regex, str, callback) {
 
 		callback(error, formattedResults);
 	}).catch((err) => {
-		callback(err.error || "ERROR", []);
+		callback(err || "ERROR", []);
 	});
 }
 

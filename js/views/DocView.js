@@ -564,7 +564,10 @@ p.update = function () {
 
 	var _this = this;
 	RegExJS.match(regex, str, type, function (error, matches) {
-		_this.error = error;
+		if (error != null) {
+			_this.error = "ERROR";
+			_this.errorMessage = error.message;
+		}
 		_this.matches = matches;
 
 		_this.updateResults();
@@ -699,7 +702,11 @@ p.updateResults = function () {
 	if (this.error) {
 		str = this.error;
 		$.addClass(div, "error");
-		tip = Docs.forErrorResult(str, this.exprLexer.errors);
+		if (this.errorMessage == null) {
+			tip = Docs.forErrorResult(str, this.exprLexer.errors);
+		} else {
+			tip = this.errorMessage;
+		}
 		this.drawSourceHighlights();
 	} else if (l > 0) {
 		str = l + " match" + (l == 1 ? "" : "es");
