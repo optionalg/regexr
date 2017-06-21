@@ -50,6 +50,9 @@ var javascript = {
 		"H": n,
 		"K": n,
 		"N": n,
+		"R": n,
+		"v": n,
+		"V": n,
 		"X": n,
 		"Z": n,
 		"z": n
