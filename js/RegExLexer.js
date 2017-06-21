@@ -410,7 +410,6 @@ p.parseBackSlash = function (str, token, charset, closeIndex) {
 		token.type = "escsequence";
 		if ((i = sub.indexOf("\\E")) !== -1) { token.l += i+2; }
 		else { token.l += closeIndex-token.i-1; }
-		console.log(i);
 	} else if (profile.tokens.escunicode && (match = sub.match(/^u([\da-fA-F]{4})/))) {
 		// unicode: \uFFFF
 		token.type = "escunicode";
@@ -426,15 +425,19 @@ p.parseBackSlash = function (str, token, charset, closeIndex) {
 		token.type = "eschexadecimal";
 		token.l += match[0].length;
 		token.code = parseInt(match[1]||0, 16);
-	} else if (!jsMode && (match = sub.match(/^c[a-zA-Z]/))) {
+	} else if (!jsMode && (match = sub.match(/^c([a-zA-Z])?/))) {
 		// control char: \cA \cz
+		// also handles: \c
 		// not supported in JS strings
-		sub = match[0].substr(1);
 		token.type = "esccontrolchar";
-		token.l += 2;
-		var code = sub.toUpperCase().charCodeAt(0) - 64; // A=65
-		if (code > 0) {
-			token.code = code;
+		if (match[1]) {
+			token.code = match[1].toUpperCase().charCodeAt(0) - 64; // A=65
+			token.l += 2;
+		} else if (profile.config.ctrlcodeerr) {
+			token.l++;
+			token.err = "esccharbad";
+		} else {
+			return this.parseChar(str, token, charset); // this builds the "/" token
 		}
 	} else if (match = sub.match(/^[0-7]{1,3}/)) {
 		// octal ascii: \011
@@ -445,10 +448,6 @@ p.parseBackSlash = function (str, token, charset, closeIndex) {
 		token.type = "escoctal";
 		token.l += sub.length;
 		token.code = parseInt(sub, 8);
-	} else if (!jsMode && c == "c") {
-		// TODO: PCRE treats it as an error. Use "esccharbad"?
-		// control char without a code - strangely, this is decomposed into literals equivalent to "\\c"
-		return this.parseChar(str, token, charset); // this builds the "/" token
 	} else {
 		// single char
 		token.l++;
@@ -491,7 +490,7 @@ p.parseRef = function(token, sub) {
 	token.type = (isNaN(s) ? "named" : "num") + (isRef ? "ref" : "subroutine");
 	this.getRef(token, s);
 	token.l += match ? match[0].length : 1;
-}
+};
 
 p.parseUnicode = function(token, sub) {
 	// unicodescript: \p{Cherokee}

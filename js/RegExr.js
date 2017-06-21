@@ -8,7 +8,7 @@ require('./third-party/history.adapter.native.js');
 require('./third-party/history.js');
 
 if (typeof window.DEBUG === "undefined") {
-    window.DEBUG = true;
+	window.DEBUG = true;
 }
 
 // Import some classes into a shared object, for use in the index.template.js
