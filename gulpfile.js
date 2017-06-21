@@ -16,6 +16,7 @@ var browserify = require('browserify');
 var watchify = require('watchify');
 var browserSync = require('browser-sync').create();
 var runSequence = require('run-sequence');
+var pump = require('pump');
 
 var staticAssets = [
 	"index.html",
@@ -108,19 +109,26 @@ gulp.task('copy-assets', function () {
 		.pipe(browserSync.stream());
 });
 
-gulp.task('minify-js', function () {
-	return gulp.src(['build/js/scripts.min.js', 'build/js/regExWorker.template.js'])
-		.pipe(uglify({
-			compress: {
-				global_defs: {
-					DEBUG: false
-				},
-				dead_code: true
-			},
-			ASCIIOnly: true
-		}))
-		.pipe(gulp.dest('build/js'))
-		.pipe(browserSync.stream());
+gulp.task('minify-js', function (cb) {
+  pump([
+        gulp.src(['build/js/scripts.min.js', 'build/js/regExWorker.template.js']),
+        uglify({
+					compress: {
+						global_defs: {
+							DEBUG: false
+						},
+						dead_code: true
+					},
+					ASCIIOnly: true
+				}
+				),
+        gulp.dest('build/js')
+    ],
+    function() {
+			browserSync.reload();
+			cb();
+		}
+  );
 });
 
 gulp.task('build-js', function () {
