@@ -61,12 +61,11 @@ s.getAllFavorites = function () {
 
 s.getAllByType = function (type) {
 	var items = [];
-	var allPrefs = store.getAll();
-	for (var n in allPrefs) {
-		if (n.indexOf(type) == 0) {
-			items.push(Number(n.substr(1)));
+	store.each(function(value, key) {
+		if (key.indexOf(type) == 0) {
+			items.push(Number(key.substr(1)));
 		}
-	}
+	})
 	return items;
 };
 
