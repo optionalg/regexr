@@ -153,7 +153,7 @@ Docs.forToken = function (token) {
 
 Docs.forErrorResult = function (type, errors) {
 	var node = Docs.ids[type];
-	return "<span class='error-title'>ERROR: </span>" + (node.tip || node.desc);
+	return "<span class='error-title'>ERROR: </span>" + (node ? (node.tip || node.desc) : type);
 };
 
 Docs.getDesc = function (id) {
