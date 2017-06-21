@@ -25,96 +25,15 @@
 var RegExLexer = function () { };
 var p = RegExLexer.prototype;
 
-// TODO: all these constants should move into a core profile:
-// \ ^ $ . | ? * + ( ) [ {
-RegExLexer.CHAR_TYPES = {
-	".": "dot",
-	"|": "alt",
-	"$": "eof", // TODO: rename?
-	"^": "bof",
-	"?": "opt", // also: "lazy"
-	"+": "plus",
-	"*": "star"
-};
-
-RegExLexer.ESC_CHARS_SPECIAL = {
-	"w": "word",
-	"W": "notword",
-	"d": "digit",
-	"D": "notdigit",
-	"s": "whitespace",
-	"S": "notwhitespace",
-	"b": "wordboundary",
-	"B": "notwordboundary"
-	// u-uni, c-ctrl, x-hex, oct handled in parseBackSlash
-};
-
-RegExLexer.PCRE_ESC_CHARS_SPECIAL = {
-	"G": "prevmatchend",
-	"A": "bos",
-	"Z": "eos",
-	"z": "abseos",
-	"K": "keep",
-	"h": "hwhitespace",
-	"H": "nothwhitespace",
-	"N": "notlinebreak",
-	"X": "unicodegrapheme"
-};
-
-RegExLexer.UNQUANTIFIABLE = {
-	"quant": true,
-	"plus": true,
-	"star": true,
-	"opt": true,
-	"eof": true,
-	"bof": true,
-	"group": true, // group open
-	"lookaround": true, // lookaround open
-	"wordboundary": true,
-	"notwordboundary": true,
-	"lazy": true,
-	"alt": true,
-	"open": true,
-	"condition": true,
-	"condition_close": true,
-	"conditional": true, // conditional open
-	"mode": true
-};
-
-RegExLexer.ESC_CHAR_CODES = {
-	"0": 0,  // null
-	"t": 9,  // tab
-	"n": 10, // lf
-	"v": 11, // vertical tab
-	"f": 12, // form feed
-	"r": 13  // cr
-};
-
-RegExLexer.PCRE_ESC_CHAR_CODES = {
-	"a": 7,
-	"e": 27
-};
-
-RegExLexer.UNICODE_SCRIPTS = {
-	"Cherokee": true,
-	"Common": true
-};
-
-RegExLexer.UNICODE_CATEGORIES = {
-	"Ll": true,
-	"L": true
-};
-
-
-
 p.string = null;
 p.token = null;
 p.errors = null;
 p.captureGroups = null;
 p.namedGroups = null;
-p.pcreMode = true;
+p.profile = null;
 
 p.parse = function (str) {
+	if (!this.profile) { return null; }
 	if (str === this.string) {
 		return this.token;
 	}
@@ -125,8 +44,9 @@ p.parse = function (str) {
 	var capgroups = this.captureGroups = [];
 	var namedgroups = this.namedGroups = {};
 	var groups = [], refs = [], i = 0, l = str.length;
-	var o, c, token, prev = null, charset = null, unquantifiable = RegExLexer.UNQUANTIFIABLE;
-	var charTypes = RegExLexer.CHAR_TYPES;
+	var o, c, token, prev = null, charset = null;
+	var profile = this.profile, unquantifiable = profile.unquantifiable;
+	var charTypes = profile.charTypes;
 	var closeIndex = str.lastIndexOf("/");
 
 	while (i < l) {
@@ -167,7 +87,7 @@ p.parse = function (str) {
 			token.open = charset;
 			charset.close = token;
 			charset = null;
-		} else if (c === "+" && prev && prev.clss === "quant" && this.pcreMode) {
+		} else if (c === "+" && prev && prev.clss === "quant" && profile.tokens.possessive) {
 			token.type = "possessive";
 			token.related = [prev];
 		} else if ((c === "+" || c === "*") && !charset) {
@@ -273,8 +193,7 @@ p.matchRefs = function(refs, indexes, names) {
 			token.related = [group];
 			token.dir = (token.i < group.i) ? 1 : (!group.close || token.i < group.close.i) ? 0 : -1;
 		} else {
-			if (this.refToOctal(token)) { continue; }
-			this.errors.push(token.err = "unmatchedref");
+			if (!this.refToOctal(token)) { this.errors.push(token.err = "unmatchedref"); }
 		}
 	}
 };
@@ -290,7 +209,7 @@ p.refToOctal = function(token) {
 			name += char;
 			this.mergeNext(token);
 		}
-	} else if (this.pcreMode || !/^[0-7]$/.test(name)) {
+	} else if (!this.profile.config.reftooctalalways || !/^[0-7]$/.test(name)) {
 		return false;
 	}
 	token.code = parseInt(name,8);
@@ -326,7 +245,7 @@ p.parseFlag = function (str, token) {
 
 p.parseChar = function (str, token, charset) {
 	var c = str[token.i];
-	token.type = (!charset && RegExLexer.CHAR_TYPES[c]) || "char";
+	token.type = (!charset && this.profile.charTypes[c]) || "char";
 	if (!charset && c === "/") {
 		token.err = "fwdslash";
 	}
@@ -453,8 +372,7 @@ p.parseParen = function (str, token) {
 		token.capture = true;
 	}
 
-	// TODO: should this just be global?
-	//token.supported = this.profile[token.type] !== 0;
+	token.supported = !!this.profile.tokens[token.type];
 
 	return token;
 };
@@ -464,7 +382,7 @@ p.parseBackSlash = function (str, token, charset, closeIndex) {
 
 	// Note: \8 & \9 are treated differently: IE & Chrome match "8", Safari & FF match "\8", we support the former case since Chrome & IE are dominant
 	// Note: Chrome does weird things with \x & \u depending on a number of factors, we ignore this.
-	var i = token.i, jsMode = token.js, match;
+	var i = token.i, jsMode = token.js, match, profile = this.profile;
 	var sub = str.substr(i + 1), c = sub[0];
 	if (i + 1 === (closeIndex || str.length)) {
 		token.err = "esccharopen";
@@ -480,25 +398,25 @@ p.parseBackSlash = function (str, token, charset, closeIndex) {
 		token.l += match[0].length;
 		return token;
 	}
-	if (!jsMode && this.pcreMode && !charset && (c === "g" || c === "k")) {
+	if (!jsMode && profile.tokens.namedref && !charset && (c === "g" || c === "k")) {
 		return this.parseRef(token, sub);
 	}
 
-	if (this.pcreMode && (c === "p" || c === "P")) {
+	if (profile.tokens.unicodecat && (c === "p" || c === "P")) {
 		// unicode: \p{Ll} \pL
 		return this.parseUnicode(token, sub);
-	} else if (this.pcreMode && c === "Q") {
+	} else if (profile.tokens.escsequence && c === "Q") {
 		// escsequence: \Q...\E
 		token.type = "escsequence";
 		if ((i = sub.indexOf("\\E")) !== -1) { token.l += i+2; }
 		else { token.l += closeIndex-token.i-1; }
 		console.log(i);
-	} else if (!this.pcreMode && (match = sub.match(/^u([\da-fA-F]{4})/))) {
+	} else if (profile.tokens.escunicode && (match = sub.match(/^u([\da-fA-F]{4})/))) {
 		// unicode: \uFFFF
 		token.type = "escunicode";
 		token.l += match[0].length;
 		token.code = parseInt(match[1], 16);
-	} else if (this.pcreMode && (match = sub.match(/^x\{([\da-fA-F]+)}/))) {
+	} else if (profile.tokens.escunicodex && (match = sub.match(/^x\{([\da-fA-F]+)}/))) {
 		// unicode: \x{FFFF}
 		token.type = "escunicodex";
 		token.l += match[0].length;
@@ -538,10 +456,7 @@ p.parseBackSlash = function (str, token, charset, closeIndex) {
 			token.err = "esccharbad";
 		}
 		if (!jsMode) {
-			token.type = RegExLexer.ESC_CHARS_SPECIAL[c];
-			if (!token.type && this.pcreMode) {
-				token.type = RegExLexer.PCRE_ESC_CHARS_SPECIAL[c];
-			}
+			token.type = profile.escCharTypes[c];
 		}
 
 		if (token.type) {
@@ -550,11 +465,8 @@ p.parseBackSlash = function (str, token, charset, closeIndex) {
 			return token;
 		}
 		token.type = "escchar";
-		token.code = RegExLexer.ESC_CHAR_CODES[c];
-		if (token.code === undefined && this.pcreMode) {
-			token.code = RegExLexer.PCRE_ESC_CHAR_CODES[c];
-		}
-		if (token.code === undefined) {
+		token.code = profile.escCharCodes[c];
+		if (token.code === undefined || token.code === false) {
 			token.code = c.charCodeAt(0);
 		}
 	}
@@ -590,9 +502,9 @@ p.parseUnicode = function(token, sub) {
 	else { not = not !== (sub[2] === "^"); }
 	token.l += match ? match[0].length : 1;
 	token.type = "unicodecat";
-	if (RegExLexer.UNICODE_SCRIPTS[val]) {
+	if (this.profile.unicodeScripts[val]) {
 		token.type = "unicodescript";
-	} else if (!RegExLexer.UNICODE_CATEGORIES[val]) {
+	} else if (!this.profile.unicodeCategories[val]) {
 		val = null;
 	}
 	if (not) { token.type = "not"+token.type; }

@@ -52,17 +52,7 @@ var core = {
 		"e": 27  // escape
 	},
 	
-	specialChars: {
-		".": "dot",
-		"|": "alt",
-		"$": "eof",  // TODO: rename?
-		"^": "bof",
-		"?": "opt",  // also: "lazy"
-		"+": "plus", // also: "possessive"
-		"*": "star"
-	},
-	
-	escCharSpecials: {
+	escCharTypes: {
 		"A": "bos",
 		"b": "wordboundary",
 		"B": "notwordboundary",
@@ -83,6 +73,38 @@ var core = {
 		"X": "unicodegrapheme",
 		"Z": "eos",
 		"z": "abseos"
+	},
+	
+	charTypes: {
+		".": "dot",
+		"|": "alt",
+		"$": "eof",  // TODO: rename?
+		"^": "bof",
+		"?": "opt",  // also: "lazy"
+		"+": "plus", // also: "possessive"
+		"*": "star"
+	},
+	
+	// TODO: update:
+	unquantifiable: {
+		"quant": y,
+		"plus": y,
+		"star": y,
+		"opt": y,
+		"eof": y,
+		"bof": y,
+		"group": y, // group open
+		"lookaround": y, // lookaround open
+		"wordboundary": y,
+		"notwordboundary": y,
+		"lazy": y,
+		"possessive": y,
+		"alt": y,
+		"open": y,
+		"condition": y, // condition open
+		"condition_close": y,
+		"conditional": y, // conditional open
+		"mode": y
 	},
 	
 	unicodeScripts: {
@@ -129,7 +151,7 @@ var core = {
 		// also in escCharCodes and escCharSpecials
 		"escoctal": y, // \11
 		"escunicode": y, // \uFFFF
-		"escunicodeu": y, // \u{00A9} // TODO: not in PCRE. In JS behind unicode flag. Needs lexer support.
+		"escunicodeu": y, // \u{00A9}
 		"escunicodex": y, // \x{00A9}
 		"escsequence": y, // \Q...\E
 		"eschexadecimal": y, // \xFF
@@ -171,13 +193,14 @@ var core = {
 		"conditionalelse": y, // |
 		"conditionalgroup": y, // (?(1)a|b) (?(-1)a|b) (?(name)a|b)
 		"mode": y, // (?i-x) see modes above
-		"comment": y, // (?#comment)
+		"comment": y // (?#comment)
 	},
 	
 	config: {
 		forwardref: y, // \1(a)
 		nestedref: y, // (\1a|b)+
-		ctrlcodeerr: y // does \c error, or decompose?
+		ctrlcodeerr: y, // does \c error? (vs decompose)
+		reftooctalalways: n // does a single digit reference \1 become an octal? (vs remain an unmatched ref)
 	},
 	
 	substTokens: {
@@ -185,7 +208,7 @@ var core = {
 		// TODO: not implemented in subst lexer:
 		subst_case: 0, // \U \L \u \l \E
 		subst_conditional: 0 // ${1:+then:else} ${1:-else} ${name:+then:else}
-	},
+	}
 	/*
 	// for example:
 	docs: {

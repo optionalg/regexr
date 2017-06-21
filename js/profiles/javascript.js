@@ -110,7 +110,8 @@ var javascript = {
 	config: {
 		forwardref: n, // \1(a)
 		nestedref: n, // (\1a|b)+
-		ctrlcodeerr: n // does \c error, or decompose?
+		ctrlcodeerr: n, // does \c error, or decompose?
+		reftooctalalways: y // does a single digit reference \1 become an octal? (vs remain an unmatched ref)
 	}
 };
 

@@ -29,7 +29,8 @@ var y=true, n=false;
 
 var pcre = {
 	tokens: {
-		"escunicodeu": n, // \u{00A9} // TODO: not in PCRE. In JS behind unicode flag. Needs lexer support.
+		"escunicode": n, // \uFFFF
+		"escunicodeu": n // \u{00A9}
 	}
 };
 

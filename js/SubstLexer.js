@@ -39,8 +39,10 @@ p.string = null;
 p.token = null;
 p.errors = null;
 p.substMode = true;
+p.profile = null;
 
 p.parse = function (str, capGroups) {
+	if (!profile) { return null; }
 	this.string = str;
 	this.errors = [];
 
@@ -102,6 +104,6 @@ p.parseSubst = function (str, token, capGroups) {
 	}
 };
 
-p.parseEsc = RegExLexer.prototype.parseEsc;
+p.parseEsc = RegExLexer.prototype.parseBackSlash;
 
 module.exports = SubstLexer;

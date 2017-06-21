@@ -43,7 +43,7 @@ var Docs = require('../utils/Docs');
 var Explain = require('../views/Explain');
 var CodeMirror = require('codemirror');
 
-var profile = require("../profiles/profile");
+var profiles = require("../profiles/profiles");
 
 var DocView = function (element) {
 	this.initialize(element);
@@ -114,6 +114,10 @@ p.initialize = function (element) {
 	this.timeoutIDs = {};
 	this.exprLexer = new RegExLexer();
 	this.toolsLexer = new SubstLexer();
+
+	// TODO: TMP.
+	this.exprLexer.profile = this.toolsLexer.profile =  profiles.pcre;
+
 	this.isMac = $.isMac();
 	this.themeColor = window.getComputedStyle($.el(".regexr-logo")).color;
 
