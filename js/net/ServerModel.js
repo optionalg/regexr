@@ -23,7 +23,7 @@
  */
 
 var s = {};
-s.END_POINT = "php/RegExr.php";
+s.END_POINT = "server/api.php";
 s._serverVersionDetails = null;
 
 s.searchTags = function (term) {
@@ -176,7 +176,7 @@ s._createPromise = function (method, data, endPoint) {
 		for (var n in postData) {
 			var v = postData[n];
 			if (v == null) {
-				postData[n] = "";
+				delete postData[n];
 			} else if (Array.isArray(v)) {
 				postData[n] = v.join(",");
 			} else if (typeof v == "boolean") {
@@ -191,9 +191,9 @@ s._createPromise = function (method, data, endPoint) {
 		}
 		xhr.send(params.join("&"));
 	}).catch(function (error) {
-				 DEBUG && console.error(error.stack);
-				 throw error;
-			 });
+		DEBUG && console.error(error.stack);
+		throw error;
+	});
 
 	return p
 };

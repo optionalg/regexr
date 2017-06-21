@@ -76,7 +76,15 @@ p.getLabel = function (label) {
 };
 
 p.getTags = function () {
-	return this.input.value.split(/(\s?)+,(\s?)+/);
+	var tagsArray = this.input.value.split(/(\s?)+,(\s?)+/);
+	var cleanTags = [];
+	for (var i = 0; i < tagsArray.length; i++) {
+		var tag = tagsArray[i];
+		if (tag != "" && cleanTags.indexOf(tag) == -1) {
+			cleanTags.push(tag);
+		}
+	}
+	return cleanTags;
 };
 
 p.setTags = function (value) {

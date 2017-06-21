@@ -14,17 +14,17 @@ var source = require('vinyl-source-stream');
 var buffer = require('vinyl-buffer');
 var browserify = require('browserify');
 var watchify = require('watchify');
-var browserSync = require('browser-sync');
+var browserSync = require('browser-sync').create();
 var runSequence = require('run-sequence');
 
 var staticAssets = [
 	"index.html",
 	"./assets/**",
-	"./php/!(cache)**",
 	"*.ico",
 	 "fonts/**",
 	".htaccess"
 ];
+var serverFiles = "server/**/!(.php_cs.cache|composer.*|Config*.php)";
 
 function compileJs(watch) {
 	var bundler = watchify(browserify('./js/RegExr.js', {debug: true}));
@@ -39,7 +39,8 @@ function compileJs(watch) {
 			.pipe(buffer())
 			.pipe(sourcemaps.init({loadMaps: true}))
 			.pipe(sourcemaps.write('./'))
-			.pipe(gulp.dest('./build/js'));
+			.pipe(gulp.dest('./build/js'))
+			.pipe(browserSync.stream());
 	}
 
 
@@ -55,17 +56,17 @@ function compileJs(watch) {
 gulp.task('sass', function () {
 	return gulp.src('./scss/regexr.scss')
 		.pipe(sass({includePaths: ["scss/third-party/compass-mixins"]}).on('error', sass.logError))
-		.pipe(gulp.dest('./build/css'));
+		.pipe(gulp.dest('./build/css'))
+		.pipe(browserSync.stream());
 });
 
 gulp.task('browser-sync', function () {
-	return browserSync(
+	return browserSync.init(
 		{
 			open: "local",
 			server: {
 				baseDir: "./build/"
-			},
-			files: "./build/**"
+			}
 		});
 });
 
@@ -78,6 +79,7 @@ gulp.task('copy-js-templates', function (cb) {
 	var assets = "js/*.template.js";
 	gulp.src(assets, {base: './js'})
 		.pipe(gulp.dest('build/js/'))
+		.pipe(browserSync.stream())
 		.on("finish", function() {
 			cb();
 		});
@@ -91,9 +93,19 @@ gulp.task('watch-sass', function () {
 	gulp.watch("./scss/**/*.scss", ['sass']);
 });
 
+gulp.task('watch-server', function () {
+	return gulp.watch(serverFiles, ['copy-server'])
+});
+
+gulp.task('copy-server', function () {
+	return gulp.src(serverFiles, {base: './', dot: true})
+		.pipe(gulp.dest('build/'));
+});
+
 gulp.task('copy-assets', function () {
 	return gulp.src(staticAssets, {base: './', dot: true})
-		.pipe(gulp.dest('build/'));
+		.pipe(gulp.dest('build/'))
+		.pipe(browserSync.stream());
 });
 
 gulp.task('minify-js', function () {
@@ -107,7 +119,8 @@ gulp.task('minify-js', function () {
 			},
 			ASCIIOnly: true
 		}))
-		.pipe(gulp.dest('build/js'));
+		.pipe(gulp.dest('build/js'))
+		.pipe(browserSync.stream());
 });
 
 gulp.task('build-js', function () {
@@ -127,7 +140,8 @@ gulp.task('server', function () {
 gulp.task('minify-css', function () {
 	return gulp.src('build/css/regexr.css')
 		.pipe(minifyCss())
-		.pipe(gulp.dest('build/css'));
+		.pipe(gulp.dest('build/css'))
+		.pipe(browserSync.stream());
 });
 
 gulp.task('open-build', function () {
@@ -136,7 +150,7 @@ gulp.task('open-build', function () {
 });
 
 gulp.task('clean-pre-build', function () {
-	return gulp.src(['./build/!(v1|.git|sitemap.txt|*.md|php*)'], {read: false})
+	return gulp.src(['./build/!(v1|.git|sitemap.txt|*.md)'], {read: false})
 		.pipe(rimraf());
 });
 
@@ -170,7 +184,7 @@ gulp.task('parse-index', function () {
 gulp.task('build', function (done) {
 	runSequence(
 		'clean-pre-build',
-		['build-js', 'copy-assets', 'sass'],
+		['build-js', 'copy-assets', 'sass', 'copy-server'],
 		'copy-js-templates',
 		['minify-js', 'minify-css'],
 		['parse-index'],
@@ -183,8 +197,8 @@ gulp.task('build', function (done) {
 
 gulp.task('default', function (done) {
 	runSequence(
-		['sass', 'watch-js', 'watch-sass', 'copy-js-templates'],
-		'copy-assets',
+		['sass', 'watch-js', 'watch-sass', 'watch-server', 'copy-js-templates'],
+		'copy-assets', 'copy-server',
 		['watch-assets', 'watch-js-templates', 'browser-sync'],
 		done
 	);

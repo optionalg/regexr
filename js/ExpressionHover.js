@@ -54,6 +54,7 @@ p.onMouseDown = function (cm, evt) {
 	if (evt.which != 1 && evt.button != 1) {
 		return;
 	}
+
 	this.onMouseMove(); // clear current
 	this.isMouseDown = true;
 	var _this = this, f, t = window.addEventListener ? window : document;

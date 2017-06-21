@@ -4,7 +4,7 @@
   "license": "MIT",
   "repository": "http://github.com/gskinner/regexr/regexr.git",
   "devDependencies": {
-    "browser-sync": "^2.10.0",
+    "browser-sync": "^2.18.12",
     "browserify": "^10.2.6",
     "gulp": "^3.9.0",
     "gulp-compass": "^2.1.0",

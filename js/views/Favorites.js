@@ -195,8 +195,8 @@ p.handleFavoritesLoad = function (data) {
 			author: "gskinner.com"
 		};
 		this.list.setData([promotionData]);
-	} else if (data && data.results) {
-		this.list.setData(data.results);
+	} else if (data) {
+		this.list.setData(data);
 	} else {
 		var promotionData = {
 			content: "All your favorite patterns will be saved in the favourites section.",
