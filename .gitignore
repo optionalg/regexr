@@ -31,5 +31,7 @@ regexr.css
 *.map
 scripts.min.js
 yarn.lock
-
 \.vscode/
+server/
+
+package-lock\.json

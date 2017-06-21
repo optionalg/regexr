@@ -25,7 +25,7 @@ var staticAssets = [
 	 "fonts/**",
 	".htaccess"
 ];
-var serverFiles = "server/**/!(.php_cs.cache|composer.*|Config*.php)";
+var serverFiles = "server/**/!(.php_cs.cache|composer.*|Config*.php|.git.*)";
 
 function compileJs(watch) {
 	var bundler = watchify(browserify('./js/RegExr.js', {debug: true}));
