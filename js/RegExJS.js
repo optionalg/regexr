@@ -24,7 +24,20 @@ s.match = function (regex, str, type, callback) {
 	}
 };
 
-s._processPCRE = function(regex, str, callback) {
+s.replace = function(regex, source, str, type) {
+	if (type == s.JS) {
+		return Promise.resolve(source.replace(regex, str));
+	} else {
+		var params = s._formatRegexParameters(regex, str);
+		params.source = source;
+
+		return ServerModel.regexReplace(params).then(function(result) {
+			return result;
+		});
+	}
+}
+
+s._formatRegexParameters = function(regex, str) {
 	var pattern = regex.pattern;
 	var flags = regex.flags;
 	var global = false;
@@ -37,9 +50,13 @@ s._processPCRE = function(regex, str, callback) {
 		flags = flags.substr(0, gIndex)+flags.substr(gIndex+1);
 	}
 
-	var json = JSON.stringify({pattern: pattern, flags: flags, global: global, str: str});
+	return {pattern: pattern, flags: flags, global: global, str: str};
+}
 
-	ServerModel.executeRegex(json).then(function(result) {
+s._processPCRE = function(regex, str, callback) {
+	var params  = s._formatRegexParameters(regex, str);
+
+	ServerModel.regexMatch(params).then(function(result) {
 		var error = null;
 		if (result == null) {
 			error = "ERROR";

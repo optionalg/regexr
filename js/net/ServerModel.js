@@ -111,10 +111,13 @@ s.getPatternList = function (ids) {
 	return s._createPromise("getPatternList", {idList: ids}).then(s.formatPattern);
 };
 
-s.executeRegex = function (value) {
-	return s._createPromise("executeRegex", {data: value})
+s.regexMatch = function (value) {
+	return s._createPromise("regexMatch", {data: JSON.stringify(value)})
 };
 
+s.regexReplace = function (value) {
+	return s._createPromise("regexReplace", {data: JSON.stringify(value)})
+};
 
 s.trackVisit = function (id) {
 	return s._createPromise("trackVisit", {id: id})
@@ -191,7 +194,6 @@ s._createPromise = function (method, data, endPoint) {
 		}
 		xhr.send(params.join("&"));
 	}).catch(function (error) {
-		DEBUG && console.error(error.stack);
 		throw error;
 	});
 

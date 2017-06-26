@@ -117,6 +117,7 @@ p.initialize = function (element) {
 
 	// TODO: TMP.
 	this.exprLexer.profile = this.toolsLexer.profile =  profiles.pcre;
+	this.regexType = RegExJS.PCRE;
 
 	this.isMac = $.isMac();
 	this.themeColor = window.getComputedStyle($.el(".regexr-logo")).color;
@@ -543,12 +544,10 @@ p.resize = function () {
 p.update = function () {
 	this.error = null;
 
-	var type = RegExJS.PCRE;
-
 	var matches = this.matches;
 	var str = this.sourceCM.getValue();
 	var expr = this.expressionCM.getValue();
-	var regex = this.getRegEx(true, type);
+	var regex = this.getRegEx(true);
 	this.expressionHighlighter.draw(this.exprLexer.parse(expr));
 	this.expressionHover.token = this.exprLexer.token;
 	matches.length = 0;
@@ -563,7 +562,7 @@ p.update = function () {
 	}
 
 	var _this = this;
-	RegExJS.match(regex, str, type, function (error, matches) {
+	RegExJS.match(regex, str, this.regexType, function (error, matches) {
 		if (error != null) {
 			_this.error = "ERROR";
 			_this.errorMessage = error.message;
@@ -584,19 +583,21 @@ p.update = function () {
 	});
 };
 
-p.getRegEx = function(global, type) {
+p.getRegEx = function(global) {
 	var regex, o = this.decomposeExpression(this.expressionCM.getValue());
 
 	if (global === true && o.flags.indexOf("g") === -1) { o.flags += "g"; }
 	else if (global === false) { o.flags = o.flags.replace("g",""); }
 
-	if (type == null || type == RegExJS.JS) {
+	if (this.regexType == RegExJS.JS) {
 		try {
 			regex = new RegExp(o.pattern, o.flags);
-		} catch (e) {}
+		} catch (e) { }
 		return regex;
-	} else if (type == RegExJS.PCRE) {
+	} else if (this.regexType == RegExJS.PCRE) {
 		return o;
+	} else {
+		console.error("Incorrect type passed.");
 	}
 }
 
@@ -624,7 +625,10 @@ p.updateTool = function (source, regex) {
 				console.error("UNCAUGHT js string error", e);
 			}
 			if (this.tool == "replace") {
-				result = source.replace(regex || this.getRegEx(), str);
+				var _this = this;
+				RegExJS.replace(regex || this.getRegEx(), source, str, this.regexType).then(function (result) {
+					_this.toolsOutCM.setValue(result);
+				});
 			} else {
 				var repl, ref, regex = this.getRegEx(false), lastIndex = -1, trimR = 0;
 				if (str.search(/\$[&1-9`']/) === -1) {
@@ -643,7 +647,10 @@ p.updateTool = function (source, regex) {
 				if (trimR) { result = result.substr(0,result.length-trimR); }
 			}
 		}
-		this.toolsOutCM.setValue(result);
+
+		if (result != "") {
+			this.toolsOutCM.setValue(result);
+		}
 	} else if (this.tool == "details") {
 		var cm = this.sourceCM;
 		match = this.getMatchAt(cm.indexFromPos(cm.getCursor()), true);

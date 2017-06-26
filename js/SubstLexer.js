@@ -42,7 +42,7 @@ p.substMode = true;
 p.profile = null;
 
 p.parse = function (str, capGroups) {
-	if (!profile) { return null; }
+	if (!this.profile) { return null; }
 	this.string = str;
 	this.errors = [];
 
