@@ -35,3 +35,4 @@ yarn.lock
 server/
 
 package-lock\.json
+**/TMP*
