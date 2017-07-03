@@ -538,7 +538,7 @@ p.parseUnicode = function(token, sub) {
 	// unicodescript: \p{Cherokee}
 	// unicodecat: \p{Ll} \pL
 	// not: \P{Ll} \p{^Lu}
-	var match = sub.match(/p\{\^?(\w*)}/i), val = match && match[1], not = sub[0] === "P";
+	var match = sub.match(/p\{\^?([^}]*)}/i), val = match && match[1], not = sub[0] === "P";
 	if (!match && (match = sub.match(/[pP]([LMZSNPC])/))) { val = match[1]; }
 	else { not = not !== (sub[2] === "^"); }
 	token.l += match ? match[0].length : 1;
