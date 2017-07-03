@@ -360,7 +360,7 @@ p.parseParen = function (str, token) {
 		s = match[0];
 		token.behind = s[0] === "<";
 		token.negative = s[+token.behind] === "!";
-		token.type = isCond ? "conditional" : (token.negative ? "neg" : "pos") + "look" + (token.behind ? "behind" : "ahead");
+		token.type = isCond ? "condition" : (token.negative ? "neg" : "pos") + "look" + (token.behind ? "behind" : "ahead");
 		if (isCond) {
 			token.proxy = token.prev;
 			token.prev.related = [token];

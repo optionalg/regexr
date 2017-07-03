@@ -369,7 +369,7 @@ var core = {
 		
 		// special:
 		"conditional": y, // (?(?=if)then|else)
-		"conditionalif": y, // (?=if) any lookaround
+		"condition": y, // (?=if) any lookaround
 		"conditionalelse": y, // |
 		"conditionalgroup": y, // (?(1)a|b) (?(-1)a|b) (?(name)a|b)
 		"mode": y, // (?i-x) see modes above
