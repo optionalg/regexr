@@ -108,18 +108,192 @@ var core = {
 	},
 	
 	unicodeScripts: {
+		// from: http://www.pcre.org/original/doc/html/pcrepattern.html
+		"Arabic": y,
+		"Armenian": y,
+		"Avestan": y,
+		"Balinese": y,
+		"Bamum": y,
+		"Bassa_Vah": y,
+		"Batak": y,
+		"Bengali": y,
+		"Bopomofo": y,
+		"Brahmi": y,
+		"Braille": y,
+		"Buginese": y,
+		"Buhid": y,
+		"Canadian_Aboriginal": y,
+		"Carian": y,
+		"Caucasian_Albanian": y,
+		"Chakma": y,
+		"Cham": y,
+		"Cherokee": y,
 		"Common": y,
-		"Cherokee": y
+		"Coptic": y,
+		"Cuneiform": y,
+		"Cypriot": y,
+		"Cyrillic": y,
+		"Deseret": y,
+		"Devanagari": y,
+		"Duployan": y,
+		"Egyptian_Hieroglyphs": y,
+		"Elbasan": y,
+		"Ethiopic": y,
+		"Georgian": y,
+		"Glagolitic": y,
+		"Gothic": y,
+		"Grantha": y,
+		"Greek": y,
+		"Gujarati": y,
+		"Gurmukhi": y,
+		"Han": y,
+		"Hangul": y,
+		"Hanunoo": y,
+		"Hebrew": y,
+		"Hiragana": y,
+		"Imperial_Aramaic": y,
+		"Inherited": y,
+		"Inscriptional_Pahlavi": y,
+		"Inscriptional_Parthian": y,
+		"Javanese": y,
+		"Kaithi": y,
+		"Kannada": y,
+		"Katakana": y,
+		"Kayah_Li": y,
+		"Kharoshthi": y,
+		"Khmer": y,
+		"Khojki": y,
+		"Khudawadi": y,
+		"Lao": y,
+		"Latin": y,
+		"Lepcha": y,
+		"Limbu": y,
+		"Linear_A": y,
+		"Linear_B": y,
+		"Lisu": y,
+		"Lycian": y,
+		"Lydian": y,
+		"Mahajani": y,
+		"Malayalam": y,
+		"Mandaic": y,
+		"Manichaean": y,
+		"Meetei_Mayek": y,
+		"Mende_Kikakui": y,
+		"Meroitic_Cursive": y,
+		"Meroitic_Hieroglyphs": y,
+		"Miao": y,
+		"Modi": y,
+		"Mongolian": y,
+		"Mro": y,
+		"Myanmar": y,
+		"Nabataean": y,
+		"New_Tai_Lue": y,
+		"Nko": y,
+		"Ogham": y,
+		"Ol_Chiki": y,
+		"Old_Italic": y,
+		"Old_North_Arabian": y,
+		"Old_Permic": y,
+		"Old_Persian": y,
+		"Old_South_Arabian": y,
+		"Old_Turkic": y,
+		"Oriya": y,
+		"Osmanya": y,
+		"Pahawh_Hmong": y,
+		"Palmyrene": y,
+		"Pau_Cin_Hau": y,
+		"Phags_Pa": y,
+		"Phoenician": y,
+		"Psalter_Pahlavi": y,
+		"Rejang": y,
+		"Runic": y,
+		"Samaritan": y,
+		"Saurashtra": y,
+		"Sharada": y,
+		"Shavian": y,
+		"Siddham": y,
+		"Sinhala": y,
+		"Sora_Sompeng": y,
+		"Sundanese": y,
+		"Syloti_Nagri": y,
+		"Syriac": y,
+		"Tagalog": y,
+		"Tagbanwa": y,
+		"Tai_Le": y,
+		"Tai_Tham": y,
+		"Tai_Viet": y,
+		"Takri": y,
+		"Tamil": y,
+		"Telugu": y,
+		"Thaana": y,
+		"Thai": y,
+		"Tibetan": y,
+		"Tifinagh": y,
+		"Tirhuta": y,
+		"Ugaritic": y,
+		"Vai": y,
+		"Warang_Citi": y,
+		"Yi": y
 	},
 	
 	unicodeCategories: {
-		"Ll": y,
-		"L": y
-		// alias syntax: "Lowercase_Letter": "Ll"?
+		// from: http://www.pcre.org/original/doc/html/pcrepattern.html
+		"C": y, // Other
+		"Cc": y, // Control
+		"Cf": y, // Format
+		"Cn": y, // Unassigned
+		"Co": y, // Private use
+		"Cs": y, // Surrogate
+		"L": y, // Letter
+		"L&": y, // Any letter 
+		"Ll": y, // Lower case letter
+		"Lm": y, // Modifier letter
+		"Lo": y, // Other letter
+		"Lt": y, // Title case letter
+		"Lu": y, // Upper case letter
+		"M": y, // Mark
+		"Mc": y, // Spacing mark
+		"Me": y, // Enclosing mark
+		"Mn": y, // Non-spacing mark
+		"N": y, // Number
+		"Nd": y, // Decimal number
+		"Nl": y, // Letter number
+		"No": y, // Other number
+		"P": y, // Punctuation
+		"Pc": y, // Connector punctuation
+		"Pd": y, // Dash punctuation
+		"Pe": y, // Close punctuation
+		"Pf": y, // Final punctuation
+		"Pi": y, // Initial punctuation
+		"Po": y, // Other punctuation
+		"Ps": y, // Open punctuation
+		"S": y, // Symbol
+		"Sc": y, // Currency symbol
+		"Sk": y, // Modifier symbol
+		"Sm": y, // Mathematical symbol
+		"So": y, // Other symbol
+		"Z": y, // Separator
+		"Zl": y, // Line separator
+		"Zp": y, // Paragraph separator
+		"Zs": y // Space separator
 	},
 	
 	posixCharClasses: {
-		"alpha": y
+		// from: http://www.pcre.org/original/doc/html/pcrepattern.html
+		"alnum": y, // letters and digits
+		"alpha": y, // letters
+		"ascii": y, // character codes 0 - 127
+		"blank": y, // space or tab only
+		"cntrl": y, // control characters
+		"digit": y, // decimal digits (same as \d)
+		"graph": y, // printing characters, excluding space
+		"lower": y, // lower case letters
+		"print": y, // printing characters, including space
+		"punct": y, // printing characters, excluding letters and digits and space
+		"space": y, // white space (the same as \s from PCRE 8.34)
+		"upper": y, // upper case letters
+		"word": y, // "word" characters (same as \w)
+		"xdigit": y // hexadecimal digits
 	},
 	
 	modes: {
@@ -248,5 +422,6 @@ fwdslash
 notsupported
 extraelse
 unmatchedref
+unmatchedunicode
 posixcharclassbad
  */
