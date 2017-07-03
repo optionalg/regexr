@@ -190,14 +190,18 @@ p.matchRefs = function(refs, indexes, names) {
 			token.related = [group];
 			token.dir = (token.i < group.i) ? 1 : (!group.close || token.i < group.close.i) ? 0 : -1;
 		} else {
+			delete token.group;
+			delete token.relIndex;
 			if (!this.refToOctal(token)) { this.errors.push(token.err = "unmatchedref"); }
 		}
 	}
 };
 
 p.refToOctal = function(token) {
-	// PCRE: \# \0 = unmatched, \00 = octal, \## = dunno?
+	// PCRE: \# \0 = unmatched, \00 = octal, \## = dunno
 	// JS: \# = unmatched?, \0 \00 = octal, \## = dunno
+	// PCRE matches \8 \9 to "8" "9"
+	// JS: \8 \9 match "8" "9" in IE & Chrome, and "\8" "\9" in Safari & FF. We support the former case since Chrome & IE are dominant.
 	if (token.type !== "reference") { return false; } // simple \13 style
 	var name = token.name;
 	if (/^[0-7]{2}$/.test(name)) { // octal
@@ -206,6 +210,12 @@ p.refToOctal = function(token) {
 			name += char;
 			this.mergeNext(token);
 		}
+	} else if (name === "8" || name === "9") {
+		token.type = "escchar";
+		token.clss = "esc";
+		token.code = name.charCodeAt(0);
+		delete token.name;
+		return true;
 	} else if (!this.profile.config.reftooctalalways || !/^[0-7]$/.test(name)) {
 		return false;
 	}
@@ -235,7 +245,7 @@ p.parseFlag = function (str, token) {
 		}
 	} else {
 		// TODO: probably use flag names instead of this?
-		token.type = "flag_" + c;
+		token.type = this.profile.flags[c]; // old: "flag_" + c;
 	}
 	token.clear = true;
 };
@@ -350,7 +360,7 @@ p.parseParen = function (str, token) {
 		s = match[0];
 		token.behind = s[0] === "<";
 		token.negative = s[+token.behind] === "!";
-		token.type = isCond ? "condition" : (token.negative ? "neg" : "pos") + "look" + (token.behind ? "behind" : "ahead");
+		token.type = isCond ? "conditional" : (token.negative ? "neg" : "pos") + "look" + (token.behind ? "behind" : "ahead");
 		if (isCond) {
 			token.proxy = token.prev;
 			token.prev.related = [token];
@@ -403,8 +413,6 @@ p.parseParen = function (str, token) {
 
 p.parseBackSlash = function (str, token, charset, closeIndex) {
 	// jsMode tries to read escape chars as a JS string which is less permissive than JS RegExp, and doesn't support \c or backreferences, used for subst
-
-	// Note: \8 & \9 are treated differently: IE & Chrome match "8", Safari & FF match "\8", we support the former case since Chrome & IE are dominant
 	// Note: Chrome does weird things with \x & \u depending on a number of factors, we ignore this.
 	var i = token.i, jsMode = token.js, match, profile = this.profile;
 	var sub = str.substr(i + 1), c = sub[0], val;
@@ -415,7 +423,7 @@ p.parseBackSlash = function (str, token, charset, closeIndex) {
 
 	// TODO: update jsMode
 	if (!jsMode && !charset && (match = sub.match(/^\d\d?/))) {
-		// \1 \22
+		// \1 to \99
 		// write this as a reference for now, and re-write it later if it doesn't match a group
 		token.type = "reference";
 		this.getRef(token, match[0]);
