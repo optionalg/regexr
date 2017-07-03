@@ -386,8 +386,8 @@ var core = {
 	substTokens: {
 		// TODO: fill this in.
 		// TODO: not implemented in subst lexer:
-		subst_case: 0, // \U \L \u \l \E
-		subst_conditional: 0 // ${1:+then:else} ${1:-else} ${name:+then:else}
+		substcase: 0, // \U \L \u \l \E
+		substconditional: 0 // ${1:+then:else} ${1:-else} ${name:+then:else}
 	}
 	/*
 	// for example:
