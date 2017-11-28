@@ -23,7 +23,7 @@
  */
 
 var s = {};
-s.END_POINT = "server/api.php";
+s.END_POINT = "http://beta.regexr.com/server/api.php";
 s._serverVersionDetails = null;
 
 s.searchTags = function (term) {

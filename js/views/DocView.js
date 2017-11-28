@@ -155,7 +155,7 @@ p.buildUI = function (el) {
 	var srcCM = this.sourceCM = this.createCM(sourceEditor, {lineWrapping: true});
 	srcCM.on("change", $.bind(this, this.deferUpdate));
 	srcCM.on("scroll", $.bind(this, this.drawSourceHighlights));
-	srcCM.on("cursorActivity", $.bind(this, this.handleSrcCursorActivity))
+	srcCM.on("cursorActivity", $.bind(this, this.handleSrcCursorActivity));
 
 	this.sourceCanvas = $.el(".source canvas", el);
 	this.sourceMeasure = $.el(".source .measure", el);

@@ -597,8 +597,6 @@ var errors = {
 	lookbehind:"Lookbehind is not supported in JavaScript.",
 	fwdslash:"Unescaped forward slash.",
 	esccharbad:"Invalid escape sequence."
-
-
 	// infinite is handled in the Help section.
 };
 
